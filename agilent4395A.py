@@ -9,7 +9,7 @@ import os
 import tkinter
 from scipy.signal import find_peaks
 
-
+'''
 def progressBar(toolbar_width=300):
     toolbar_width = int(toolbar_width + 1)
     # setup toolbar
@@ -22,6 +22,21 @@ def progressBar(toolbar_width=300):
         sys.stdout.write(".")
         sys.stdout.flush()
     sys.stdout.write("]\n") # this ends the progress bar
+    return
+'''
+def progressBar(time_sleep=300):
+
+    toolbar_width = 20
+    sleep = time_sleep
+    sleep_rep = sleep/toolbar_width
+
+    for rep in range(toolbar_width):
+        time.sleep(sleep_rep) # do real work here
+        # update the bar
+        sys.stdout.write("=")
+        sys.stdout.flush()
+    sys.stdout.write("\n") # this ends the progress bar
+    return
 
 
 class Agilent4395A():
@@ -30,7 +45,7 @@ class Agilent4395A():
         resources = pyvisa.ResourceManager('@py')
         self._vna = resources.open_resource(name)
         self._sleep = 0.5       #sleep between commands
-        self._path = 'outData'  #save path for data files
+        self._path = None  #save path for data files
         self._params = {}
         #self._params["nome elemento"] = oggetto
         return
@@ -108,6 +123,8 @@ class Agilent4395A():
         self.set_scale()
         return
 
+    
+
     def get_data(self):
         dtype = 'float'
         ydata = self._vna.query('OUTPDTRC?').strip().split(',')
@@ -116,6 +133,10 @@ class Agilent4395A():
         xdata = self._vna.query('OUTPSWPRM?').strip().split(',')
         xdata = np.array(xdata).astype(dtype)
         return xdata, ydata
+
+    def print_current_path(self):
+        print(self._path)
+        return 
 
     def plot_data(self):
         x,y = self.get_data()
@@ -126,11 +147,11 @@ class Agilent4395A():
     def save_data_txt(self,name='Run', savePlot=False):
         save_path = ''
         if name is not None:
-            save_path = "/" + name + '_'
+            save_path = name + '_'
         save_path += time.strftime("%y:%m:%d:%H:%M:%S") + '.dat' 
         if self._path is not None:
             os.system('mkdir -p ' + self._path)
-            save_path = self._path + save_path
+            save_path = self._path +"/" +save_path
 
         self.get_init_par()
         lista = list(self._params.items())
@@ -147,7 +168,7 @@ class Agilent4395A():
 
         if savePlot:
             plt.plot(x,y,c='k')
-            plt.savefig(save_path.strip('.dat')+'.png')
+            plt.savefig(save_path.rstrip('.dat')+'.png')
             plt.close()
         return
 
@@ -177,15 +198,29 @@ class Agilent4395A():
         #print("(freq_min, freq_max): ", freq_min, freq_max)      
         return self._params
 
-    def find_peak(self, n_std=5):
+    def find_peak(self, n_std=5,distance_f=500,rm_thr=600): #distance and rm_thr in Hz
         x, y = self.get_data()
-        ii, dic = find_peaks(-y,height=-np.mean(y)+n_std*np.std(y))
-        freq = x[ii]
-        heights = dic['peak_heights']
-        return freq, heights
+        Y = np.abs(-y+y[np.argmin([y[0],y[-1]])]  )
+        
+        df = x[1]-x[0]
+        distance_s = int(np.round(distance_f/df))
+
+        peaks, _ = find_peaks(Y,height=None, distance=distance_s,width=2)
+        
+        #find the positions in the x vector without a peak (no_peaks).
+        rm_thr_s = int(np.round(rm_thr/df))
+        no_peaks = np.arange(len(Y))
+        for pos in peaks:
+            no_peaks = no_peaks[(no_peaks<(pos-int(rm_thr_s/2))) | (no_peaks>(pos+int(rm_thr_s/2))) ]
+
+        #define a proper threshold
+        thr1 = np.mean(Y[no_peaks])+n_std*np.std(Y[no_peaks])
+
+        peaks, _ = find_peaks(Y, height=thr1,distance=distance_s,width=1)
+        return x[peaks], y[peaks]        
 
     def routine(self, center_start = None, center_stop=None, span_large=None, IFBW_large = None, power=None,
-                npt = None, span_zoom=100, IFBW_zoom=30, savePlot=False):
+                npt = None, span_zoom=100, IFBW_zoom=30,thr_freq=1000, n_std=5,savePlot=False):
 
         dic = self.get_init_par()
         if npt is None:
@@ -201,19 +236,24 @@ class Agilent4395A():
             self.start_single_measure(npt=npt,center=i,span=span_large,IFBW=IFBW_large,power=power)
             print(self.get_init_par())
             sweeping_time = self._params.get("sweep")
-            time.sleep(sweeping_time)
-            freq, heights = self.find_peak()
-            self.save_data_txt('Center'+str(i), savePlot=savePlot);
+            progressBar(sweeping_time)
+            #time.sleep(sweeping_time)
+            freq, heights = self.find_peak(n_std=n_std,distance_f =thr_freq, rm_thr=2*IFBW_large)
+
+            
             if (len(freq) !=  0):
-                count  = count + 1
-                print("### Peak found! Number: ", count)
-                self.save_data_txt('Peak'+str(count), savePlot=savePlot);
-                freq_max_index = np.argmax(heights)
-                new_c = freq[freq_max_index]
-                print('###### Zooming in')
-                self.start_single_measure(npt=npt,center=new_c,span=span_zoom,IFBW=IFBW_zoom,power=power)
-                print(self.get_init_par())
-                progressBar(self._params.get("sweep")*10)
-                self.save_data_txt('Zoomed_peak'+str(count), savePlot=savePlot)
-                print('######')
+                fmin = str(self._params["fmin"])
+                fmax = str(self._params["fmax"])
+                self.save_data_txt('Peak'+'_'+fmin+'_'+fmax, savePlot=savePlot)
+                for f in freq:
+                    count  = count + 1
+                    new_c = f
+                    print("### Peak found! Number: ", count)
+                    print('###### Zooming in')
+                    self.start_single_measure(npt=npt,center=new_c,span=span_zoom,IFBW=IFBW_zoom,power=power)
+                    print(self.get_init_par())
+                    progressBar(self._params.get("sweep"))
+                    self.save_data_txt('Zoomed_peak'+str(count), savePlot=savePlot)
+                    print('######')
+
         return
