@@ -35,12 +35,12 @@ def main():
     VNA.set_save_path(args.save_path)
     VNA.routine(center_start=args.fstart, center_stop=args.fstop, span_large=args.span_large, IFBW_large=args.ifbw_large,
                 power=args.power, npt=args.npt, 
-                span_zoom=args.sm, IFBW_zoom=args.bws, 
+                span_zoom=args.span_small, IFBW_zoom=args.ifbw_small, 
                 thr_freq=args.thr, n_std=args.std, 
                 savePlot=args.plot)
 
 
-    IPython.embed()
+    #IPython.embed()
     
 if __name__ == "__main__":
     main()
