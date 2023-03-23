@@ -1,3 +1,12 @@
+Metadata-Version: 2.1
+Name: bawsha
+Version: 0.0.1
+Summary: bawsha packages
+Home-page: https://github.com/Lab5015/BAWSHA
+Author:  
+Author-email:  
+Requires-Python: >=3.6
+
 # BAWSHA
 This project is a colection of classes, modules and packages used to handle and analyze data from BAW. It is built on top of the standard python packages for scientific computing. 
 
