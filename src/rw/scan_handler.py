@@ -91,4 +91,68 @@ class ScanWriter:
         self._file.close()
         
         return
+
+
+
+
+
+
+
+
+class ScanReader:
+    
+    def __init__(self, path_file):
+        self._file=h5py.File(path_file, "r")
+        self._group_name = 'scan_info'
+
+    def _convert_to_dict(self, group):
+        dic = {}
+
+        for key in group.keys():
+            el = group[key]
+            if el.shape != ():
+                el = np.array(el)
+            elif el.dtype == 'object':
+                el = str(np.array(el).astype(str))
+            else:
+                el = float(np.array(el).astype(float))
+            dic[key] = el
+        return dic    
         
+    def _group_tags(self,location):
+        return list(self._file['data'][list(self._file['data'].keys())[0]][location].keys())
+    
+    def set_group_name(self,name):
+        self._group_name = name
+        return
+    
+    def get_scan_info(self):
+        return self._convert_to_dict(self._file['info'])
+    
+    def get_parameters_tags(self):
+        return self._group_tags(self._group_name)
+
+    def get_parameters(self,name=None):
+        temp = []
+        for el in self._file['data'].keys():
+            value = self._file['data'][el][self._group_name][name]
+            temp.append(np.array(value))
+        return np.array(temp)
+    
+    def get_resonance(self,number=None,freq=None,loc=None):
+        if freq is not None:
+            f = self.get_parameters('f_center')
+            resonance_name = list(self._file['data'].keys())[np.argmin(np.abs(f-freq))]
+        if number is not None:
+            resonance_name = 'resonance_'+str(number)
+        if loc is not None:
+            resonance_name = list(self._file['data'].keys())[loc]
+            
+        dic1 = self._convert_to_dict(self._file['data'][resonance_name][self._group_name])
+        dic2 = self._convert_to_dict(self._file['data'][resonance_name]['data'])
+        dic1.update(dic2)
+        return dic1
+        
+    def close_file(self):
+        self._file.close()
+        return
