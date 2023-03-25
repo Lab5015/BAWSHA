@@ -33,7 +33,7 @@ def main():
     args = parser.parse_args()
 
     VNA.set_save_path(args.save_path)
-    VNA.routine(center_start=args.fstart, center_stop=args.fstop, span_large=args.span_large, IFBW_large=args.ifbw_large,
+    VNA.routine(f_start=args.fstart, f_stop=args.fstop, span_large=args.span_large, IFBW_large=args.ifbw_large,
                 power=args.power, npt=args.npt, 
                 span_zoom=args.span_small, IFBW_zoom=args.ifbw_small, 
                 thr_freq=args.thr, n_std=args.std, 
