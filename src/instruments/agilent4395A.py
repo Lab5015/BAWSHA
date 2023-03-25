@@ -219,7 +219,7 @@ class Agilent4395A():
         peaks, _ = find_peaks(Y, height=thr1,distance=distance_s,width=1)
         return x[peaks], y[peaks]        
 
-    def routine(self, center_start = None, center_stop=None, span_large=None, IFBW_large = None, power=None,
+    def routine(self, f_start = None, f_stop=None, span_large=None, IFBW_large = None, power=None,
                 npt = None, span_zoom=100, IFBW_zoom=30,thr_freq=1000, n_std=5,savePlot=False):
 
         dic = self.get_init_par()
@@ -230,7 +230,7 @@ class Agilent4395A():
         if power is None:
             power = dic["power"]
 
-        centers = np.arange(center_start ,center_stop, span_large)
+        centers = np.arange(f_start+span_large/2 ,f_stop-span_large/2, span_large)
         count = 0;
         for i in centers:
             self.start_single_measure(npt=npt,center=i,span=span_large,IFBW=IFBW_large,power=power)
