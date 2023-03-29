@@ -114,7 +114,7 @@ def main():
                 writer.save_parameter('data/'+res_name+'/parameters','gamma',gamma)
                 writer.save_parameter('data/'+res_name+'/parameters','er_gamma',perr[1])
                 writer.save_parameter('data/'+res_name+'/parameters','f0',center)
-                writer.save_parameter('data/'+res_name+'/parameters','er_f0',center)
+                writer.save_parameter('data/'+res_name+'/parameters','er_f0',perr[2])
                 writer.save_parameter('data/'+res_name+'/parameters','norm',norm)
                 writer.save_parameter('data/'+res_name+'/parameters','er_norm',perr[0])
                 writer.save_parameter('data/'+res_name+'/parameters','asim',popt[-1])
