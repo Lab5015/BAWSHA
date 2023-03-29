@@ -47,7 +47,7 @@ def fit_func(x,norm,gamma,center,m,offset,asim):   #this is the fit function
 def main():
 
 
-    usage='./launchscan.py -p save_path -fmin freq_min -fmax freq_max -plot True'
+    usage=''
     parser = argparse.ArgumentParser(description='find and save (.txt) all the resonance peaks between two frequencies', usage=usage)
 
     parser.add_argument("-fp", "--folder_path"   , dest="folder_path"   , type=str , help="folder path with txt files"      , required = True)
