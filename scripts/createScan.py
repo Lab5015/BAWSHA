@@ -46,8 +46,6 @@ def fit_func(x,norm,gamma,center,m,offset,asim):   #this is the fit function
 
 def main():
 
-    VNA = agilent4395A.Agilent4395A()
-    print("VNA object created!")
 
     usage='./launchscan.py -p save_path -fmin freq_min -fmax freq_max -plot True'
     parser = argparse.ArgumentParser(description='find and save (.txt) all the resonance peaks between two frequencies', usage=usage)
@@ -81,6 +79,7 @@ def main():
     if args.fit is True:    
         print("Fitting the resonances...")
         num = 1
+        counter_wrong = 0
         for res_name in reader.get_resonances_list():
             reso = reader.get_resonance(name=res_name)
             freq = reso['freq']*1e-6
@@ -121,6 +120,7 @@ def main():
                 writer.save_parameter('data/'+res_name+'/parameters','asim',popt[-1])
                 writer.save_parameter('data/'+res_name+'/parameters','er_asim',perr[-1])
             except:
+                counter_wrong +=1
                 writer.save_parameter('data/'+res_name+'/parameters','Q',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','er_Q',-2)                
                 writer.save_parameter('data/'+res_name+'/parameters','depth',-2)
@@ -132,6 +132,7 @@ def main():
                 writer.save_parameter('data/'+res_name+'/parameters','er_norm',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','asim',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','er_asim',-2)
-    
+        print("All done! The fit procedure failed for ", counter_wrong, " resonances. For them a value of -2 has been assigned.")    
+        
 if __name__ == "__main__":
     main()
