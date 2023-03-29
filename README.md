@@ -5,7 +5,7 @@ This project is a colection of classes, modules and packages used to handle and 
 1. Open up your terminal and clone the repository locally:  
    Clone with HTTPS by using by the web URL
    ```
-   $ git https://github.com/Lab5015/BAWSHA.git
+   $ git clone https://github.com/Lab5015/BAWSHA.git
    ```
 
 2.  Install virtualenv using python >= 3.X (X >=6). 
