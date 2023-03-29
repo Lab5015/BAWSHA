@@ -94,6 +94,10 @@ class ScanWriter:
             f.create_dataset(path+'/'+name,data=value)
         return
 
+    def delete_parameter(self,path,name):
+        with h5py.File(self.__file,  "a") as f:
+            del f[path+'/'+name]
+        return
 
 
 
