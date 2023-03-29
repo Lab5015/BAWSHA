@@ -1,3 +1,5 @@
+gpib-ctypes==0.3.0
+h5py==3.8.0
 ipython==7.16.3
 jupyter==1.0.0
 jupyter-client==7.1.2

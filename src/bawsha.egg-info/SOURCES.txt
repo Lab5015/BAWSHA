@@ -1,6 +1,7 @@
 README.md
 setup.py
 scripts/cmdVNA.py
+scripts/createScan.py
 scripts/launchScan.py
 src/bawsha.egg-info/PKG-INFO
 src/bawsha.egg-info/SOURCES.txt
@@ -11,4 +12,6 @@ src/bawsha.egg-info/top_level.txt
 src/instruments/__init__.py
 src/instruments/agilent4395A.py
 src/process/__init__.py
+src/process/utils.py
 src/rw/__init__.py
+src/rw/scan_handler.py
