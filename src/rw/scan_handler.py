@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 import os
+import re
 
 class ScanWriter:
     
@@ -9,12 +10,22 @@ class ScanWriter:
     
     '''
     
-    def __init__(self, name_file, output_path):
+    def __init__(self, run_numb, output_path):
         
         '''
         some info here
         
         '''
+        for i in range(len(output_path)):
+            if ((path_files[i].find('.scan') != -1)):
+                numb_list = re.findall(r'\d+',path_files[i])
+                if len(numb_list)!=0:
+                    temp.append(int(numb_list[-1]))
+                
+        if len(temp) ==0:
+            name_file ='BAW_'+str(run_numb)+'_1'
+        else: 
+            name_file = 'BAW_'+str(run_numb)+'_'+str(np.array(temp).max()+1)
         self.__file = output_path+'/'+name_file  +'.scan'
         #self._file=h5py.File(output_path+'/'+name_file  +'.scan', "w")
         
