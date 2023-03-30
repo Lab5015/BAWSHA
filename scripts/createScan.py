@@ -53,12 +53,12 @@ def main():
             print("Resonance ", num, "/", n_resonance)
             num +=1
             try:
-                popt, pcov = utils.fit_resonance(freq,power,verbose=False)
+                popt, perr = utils.fit_resonance(freq,power,verbose=False)
                 
                 norm = popt[0]
                 gamma = popt[1]  #MHz
                 center = popt[2] #MHz
-                depth = np.max(popt[0]*cauchy_asim(freq,popt[1],popt[2],popt[-1]))
+                depth = np.max(popt[0]*utils.cauchy_asim(freq,popt[1],popt[2],popt[-1]))
                 Q_factor = center/(gamma*2)
                 err = ((perr[2]/(popt[1]*2))**2+(popt[2]*perr[1]/(2*popt[2]**2))**2)**0.5
                 writer.save_parameter('data/'+res_name+'/parameters','Q',Q_factor)
@@ -72,6 +72,7 @@ def main():
                 writer.save_parameter('data/'+res_name+'/parameters','er_norm',perr[0])
                 writer.save_parameter('data/'+res_name+'/parameters','asim',popt[-1])
                 writer.save_parameter('data/'+res_name+'/parameters','er_asim',perr[-1])
+                
             except:
                 counter_wrong +=1
                 writer.save_parameter('data/'+res_name+'/parameters','Q',-2)
@@ -85,6 +86,7 @@ def main():
                 writer.save_parameter('data/'+res_name+'/parameters','er_norm',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','asim',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','er_asim',-2)
+            
         print("All done! The fit procedure failed for ", counter_wrong, " resonances. For them a value of -2 has been assigned.")    
         
 if __name__ == "__main__":
