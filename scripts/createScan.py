@@ -58,9 +58,14 @@ def main():
                 norm = popt[0]
                 gamma = popt[1]  #MHz
                 center = popt[2] #MHz
-                depth = np.max(popt[0]*utils.cauchy_asim(freq,popt[1],popt[2],popt[-1]))
+                asim = popt[-1]
+                gamma_l = asim*gamma*2/(asim + 1.)
+                gamma_r = gamma*2/(asim + 1.)
+                
+                depth = (1./(np.pi*gamma_l*2)+1./(np.pi*gamma_r*2))*norm
                 Q_factor = center/(gamma*2)
                 err = ((perr[2]/(popt[1]*2))**2+(popt[2]*perr[1]/(2*popt[2]**2))**2)**0.5
+                
                 writer.save_parameter('data/'+res_name+'/parameters','Q',Q_factor)
                 writer.save_parameter('data/'+res_name+'/parameters','er_Q',err)                
                 writer.save_parameter('data/'+res_name+'/parameters','depth',depth)
@@ -70,7 +75,7 @@ def main():
                 writer.save_parameter('data/'+res_name+'/parameters','er_f0',perr[2])
                 writer.save_parameter('data/'+res_name+'/parameters','norm',norm)
                 writer.save_parameter('data/'+res_name+'/parameters','er_norm',perr[0])
-                writer.save_parameter('data/'+res_name+'/parameters','asim',popt[-1])
+                writer.save_parameter('data/'+res_name+'/parameters','asim',asim)
                 writer.save_parameter('data/'+res_name+'/parameters','er_asim',perr[-1])
                 
             except:
