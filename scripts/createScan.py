@@ -72,7 +72,7 @@ def main():
     print("Saving data...")
     writer.write_resonances(path=args.folder_path)
     
-    reader = scan_handler.ScanReader(args.save_path+"/"+args.name+'.scan')
+    reader = scan_handler.ScanReader(writer.get_file_name())
     n_resonance = len(reader.get_resonances_list())
     print(n_resonance, " resonances were found!")
 
