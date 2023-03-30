@@ -29,7 +29,10 @@ class ScanWriter:
         self.__file = output_path+'/'+name_file  +'.scan'
         #self._file=h5py.File(output_path+'/'+name_file  +'.scan', "w")
         
-    def set_general_info(self, data='16/03', T_baw=0.2, N_baw=1, Note=None):
+    def get_file_name(self):
+        return self.__file
+    
+    def set_general_info(self, data='16/03', T_baw=0.2, N_baw=1,raw_data_path = '' ,Note=None):
         
         '''
         some info here
@@ -38,7 +41,7 @@ class ScanWriter:
         with h5py.File(self.__file,'a') as f:
             general_info=f.create_group('info')
         
-        
+            general_info.create_dataset('raw_data_path', data=str(raw_data_path) )
             general_info.create_dataset('date', data=str(data) )
             general_info.create_dataset('temperature', data=T_baw )
             general_info.create_dataset('baw_number', data=str(N_baw) )
