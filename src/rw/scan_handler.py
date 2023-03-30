@@ -16,6 +16,7 @@ class ScanWriter:
         some info here
         
         '''
+        temp = []
         path_files = os.listdir(output_path)
         for i in range(len(path_files)):
             if ((path_files[i].find('.scan') != -1)):
