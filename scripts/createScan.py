@@ -66,9 +66,9 @@ def main():
     args = parser.parse_args()
 
 
-    print("Writing ", args.name, ".scan in ", args.save_path, "...")
     writer = scan_handler.ScanWriter(args.run_number,args.save_path)
-    writer.set_general_info(data=args.data,T_baw = args.temp, N_baw = args.baw, Note = args.note)
+    print("Writing ", writer.get_file_name(), "...")
+    writer.set_general_info(data=args.data,T_baw = args.temp, N_baw = args.baw, raw_data_path=args.folder_path,Note = args.note)
     print("Saving data...")
     writer.write_resonances(path=args.folder_path)
     
