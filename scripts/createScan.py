@@ -7,41 +7,6 @@ import argparse
 from rw import scan_handler
 from process import utils 
 
-#usefull functions for fit
-def cauchy_asim(x,gamma,center,asim): #the gamma are HWHM
-    gamma = gamma*2
-    gamma_l = asim*gamma/(asim + 1.)
-    gamma_r = gamma/(asim + 1.)
-    if isinstance(x,float):
-        if x < center:
-            y = (gamma_l**2 )/ ((x - center)**2 + gamma_l**2) 
-
-            if x >= center:
-                y = (gamma_r**2 )/ ((x - center)**2 + gamma_r**2) 
-    else:
-        pos_vec = np.where(x >= center)[0]
-        pos = int(pos_vec[0]) 
-        SS = x[0:pos]
-        DD = x[pos:int(len(x))]
-        
-        numerator1 = gamma_l**2
-        denominator1 = (SS - center)**2 + gamma_l**2
-        y1 = numerator1/denominator1
-        
-        numerator2 = gamma_r**2
-        denominator2 = (DD - center)**2 + gamma_r**2
-        y2 = numerator2/denominator2
-        
-        y = np.append(y1,y2)
-        norm1 = 1./(np.pi*gamma_l*2)
-        norm2 = 1./(np.pi*gamma_r*2)
-        y = y *(norm1 + norm2)
-
-    return y
-
-def fit_func(x,norm,gamma,center,m,offset,asim):   #this is the fit function
-    out = offset+x*m-norm*cauchy_asim(x,gamma,center,asim)
-    return out
 
 
 def main():
