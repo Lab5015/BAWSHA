@@ -10,26 +10,28 @@ class ScanWriter:
     
     '''
     
-    def __init__(self, run_numb, output_path):
+    def __init__(self, run_numb=None, output_path=None,name=None):
         
         '''
         some info here
         
         '''
-        temp = []
-        path_files = os.listdir(output_path)
-        for i in range(len(path_files)):
-            if ((path_files[i].find('.scan') != -1)):
-                numb_list = re.findall(r'\d+',path_files[i])
-                if len(numb_list)!=0:
-                    temp.append(int(numb_list[-1]))
+        if name is not None:
+            self.__file = output_path+'/'+name  +'.scan'
+        else:
+            temp = []
+            path_files = os.listdir(output_path)
+            for i in range(len(path_files)):
+                if ((path_files[i].find('.scan') != -1)):
+                    numb_list = re.findall(r'\d+',path_files[i])
+                    if len(numb_list)!=0:
+                        temp.append(int(numb_list[-1]))
                 
-        if len(temp) ==0:
-            name_file ='BAW_'+str(run_numb)+'_1'
-        else: 
-            name_file = 'BAW_'+str(run_numb)+'_'+str(np.array(temp).max()+1)
-        self.__file = output_path+'/'+name_file  +'.scan'
-        #self._file=h5py.File(output_path+'/'+name_file  +'.scan', "w")
+            if len(temp) ==0:
+                name_file ='BAW_'+str(run_numb)+'_1'
+            else: 
+                name_file = 'BAW_'+str(run_numb)+'_'+str(np.array(temp).max()+1)
+            self.__file = output_path+'/'+name_file  +'.scan'
         
     def get_file_name(self):
         return self.__file
