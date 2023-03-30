@@ -12,10 +12,10 @@
 ### Create a .scan
 1. Create an hdf5 file (example.scan) from txt raw data-
    ```
-   $ createScan.py -fp /location/folder_txt -sp /location/to_save_output_file -n name_output_file -d date_of the run -t baw_temperature -bn baw_number 
+   $ createScan.py -fp /location/folder_txt -sp /location/to_save_output_file -rn run_number -d date_of the run -t baw_temperature -bn baw_number 
    ```
    ```
-   $ createScan.py -fp /home/user/raw_data -sp /home/user/data -n example -d 4/12/2050 -t 0.750 -bn 41 -note "This is an example" 
+   $ createScan.py -fp /home/user/raw_data -sp /home/user/data -rn 2 -d 4/12/2050 -t 0.750 -bn 41 -note "This is an example" 
    ```
 
    **default parameters:** do the resonances fit at the end (-fit True), add a custom note (-note '')
