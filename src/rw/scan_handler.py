@@ -16,7 +16,8 @@ class ScanWriter:
         some info here
         
         '''
-        for i in range(len(output_path)):
+        path_files = os.listdir(output_path)
+        for i in range(len(path_files)):
             if ((path_files[i].find('.scan') != -1)):
                 numb_list = re.findall(r'\d+',path_files[i])
                 if len(numb_list)!=0:
