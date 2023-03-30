@@ -42,7 +42,19 @@ def fit_func(x,norm,gamma,center,m,offset,asim):
     return out
 
 
-def fit_resonance(freq,power):
+def fit_resonance(freq,power,auto=True,thr=0.5,n=10,verbose=True):
+    if auto is True:
+        MaxMin = np.max(power)-np.min(power)
+        pos = np.where(power<=np.max(power)-thr*MaxMin)[0]
+        pmin = pos[0]-len(pos)*n
+        pmax = pos[-1]+len(pos)*n
+        if pmin <0:
+            pmin = 0
+        if pmax>len(power):
+            pmax=len(power)
+        freq=freq[pmin:pmax]
+        power=power[pmin:pmax]
+
 
     center_guess = freq[np.argmin(power)]
     gamma_guess = (freq[1]-freq[0])*5
@@ -59,15 +71,19 @@ def fit_resonance(freq,power):
 
     perr = (np.diag(pcov))**0.5
 
-    for i in range(len(popt)):
-        print('Parametro ', i+1, ': ', popt[i], ' +/- ', perr[i])
-    Q_factor = popt[2]/(popt[1]*2)
-    err = ((perr[2]/(popt[1]*2))**2+(popt[2]*perr[1]/(2*popt[2]**2))**2)**0.5
-    print('Q = ' + "{:.2e}".format(Q_factor),' +/- ', err)
-
-
-    plt.plot(freq,power,'.',c='k',label='data')
-    plt.plot(freq,fit_func(freq,*popt),color='r',label='Fit')
-    plt.grid(alpha=0.6)
-    plt.legend()
-    plt.show()
+    if verbose is True:
+        for i in range(len(popt)):
+            print('Parametro ', i+1, ': ', popt[i], ' +/- ', perr[i])
+            
+        Q_factor = popt[2]/(popt[1]*2)
+        err = ((perr[2]/(popt[1]*2))**2+(popt[2]*perr[1]/(2*popt[2]**2))**2)**0.5
+        print('Q = ' + "{:.2e}".format(Q_factor),' +/- ', err)
+        
+        plt.plot(freq,power,'.',c='k',label='data')
+        plt.plot(freq,fit_func(freq,*popt),color='r',label='Fit')
+        plt.grid(alpha=0.6)
+        plt.legend()
+        plt.show()
+        return
+    else:
+        return popt, perr
