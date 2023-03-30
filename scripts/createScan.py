@@ -52,7 +52,7 @@ def main():
 
     parser.add_argument("-fp", "--folder_path"   , dest="folder_path"   , type=str , help="folder path with txt files"      , required = True)
     parser.add_argument("-sp", "--save_path"    , dest="save_path"    , type=str , help="where to save the .scan file"  , required = True)
-    parser.add_argument("-n", "--name"    , dest="name"    , type=str , help="name of the file"  , required = True) 
+    parser.add_argument("-rn", "--run_number"    , dest="run_number"    , type=int , help="run_number"  , required = True) 
     
     parser.add_argument("-d", "--data"    , dest="data"    , type=str , help="date of the measure"  , required = True) 
     parser.add_argument("-t", "--temperature"    , dest="temp"    , type=float , help="temperature of the BAW (K)"  , required = True) 
@@ -67,7 +67,7 @@ def main():
 
 
     print("Writing ", args.name, ".scan in ", args.save_path, "...")
-    writer = scan_handler.ScanWriter(args.name,args.save_path)
+    writer = scan_handler.ScanWriter(args.run_number,args.save_path)
     writer.set_general_info(data=args.data,T_baw = args.temp, N_baw = args.baw, Note = args.note)
     print("Saving data...")
     writer.write_resonances(path=args.folder_path)
