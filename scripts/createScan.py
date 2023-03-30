@@ -2,10 +2,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
-from scipy.optimize import curve_fit 
+
 
 from rw import scan_handler
-
+from process import utils 
 
 #usefull functions for fit
 def cauchy_asim(x,gamma,center,asim): #the gamma are HWHM
@@ -88,20 +88,8 @@ def main():
             print("Resonance ", num, "/", n_resonance)
             num +=1
             try:
-                center_guess = freq[np.argmin(power)]
-                gamma_guess = (freq[1]-freq[0])*5
-                m_guess = np.polyfit(freq,power,deg=1)[0]
-                offset_guess = np.polyfit(freq,power,deg=1)[1]
-                norm_guess = 1e-6
-                asim_guess = 1
-
-                initial_guess = np.array([norm_guess,gamma_guess,center_guess,m_guess,offset_guess,asim_guess])
-                bounds = np.array([[0,(freq[-1]-freq[0])/1000,freq[0],np.min([m_guess/10,m_guess*10]),np.min([offset_guess/10,offset_guess*10]),0],
-                               [1e-4,(freq[-1]-freq[0])*100,freq[-1],np.max([m_guess/10,m_guess*10]),np.max([offset_guess/10,offset_guess*10]),100]])
-
-                popt,pcov = curve_fit(fit_func,xdata=freq,ydata=power,p0=initial_guess,bounds=bounds)
-                perr = (np.diag(pcov))**0.5
-
+                popt, pcov = utils.fit_resonance(freq,power,verbose=False)
+                
                 norm = popt[0]
                 gamma = popt[1]  #MHz
                 center = popt[2] #MHz
