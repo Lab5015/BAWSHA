@@ -112,13 +112,10 @@ class Agilent4395A():
         self.set_center(center)
         time.sleep(self._sleep)
         self.set_span(span)
-        self._params["span"] = span
         time.sleep(self._sleep)
         self.set_IFBW(IFBW)
-        self._params["IFBW"] = IFBW
         time.sleep(self._sleep)
         self.set_power(power)
-        self._params["power"] = power
         time.sleep(self._sleep)
         self.set_scale()
         return
