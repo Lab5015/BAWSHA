@@ -84,7 +84,7 @@ class ScanWriter:
                     file_path = path + '/'+ path_files[i]
                     
                     header = self.__read_header(file_path)
-                    IFBW_riso=header['IFBW']
+                    IFBW_riso=header['bw']
                     power_riso=header['power']
                     f_center = header['center']
             
