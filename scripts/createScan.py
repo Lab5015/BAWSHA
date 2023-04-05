@@ -35,7 +35,7 @@ def main():
     print("Writing ", writer.get_file_name(), "...")
     writer.set_general_info(data=args.data,T_baw = args.temp, N_baw = args.baw, raw_data_path=args.folder_path,Note = args.note)
     print("Saving data...")
-    writer.write_resonances(path=args.folder_path)
+    writer.write_resonances(path=args.folder_path,data_names=['freq', 'power','phase'], data_pos=[0, 1, 2])
     
     reader = scan_handler.ScanReader(writer.get_file_name())
     n_resonance = len(reader.get_resonances_list())
