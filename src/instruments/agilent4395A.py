@@ -120,24 +120,37 @@ class Agilent4395A():
         self.set_scale()
         return
 
-    
+    def query(self, query):
+        return self._vna.query(query)
 
     def get_data(self):
         dtype = 'float'
-        ydata = self._vna.query('OUTPDTRC?').strip().split(',')
+        ydata = self._vna.query('OUTPDATA?').strip().split(',')
         ydata = np.array(ydata)
-        ydata = ydata[np.arange(int(len(ydata)/2))*2].astype(dtype) #FIXME?
+
+        yRe = ydata[np.arange(int(len(ydata)/2))*2].astype(dtype) #FIXME?
+        yIm = ydata[np.arange(int(len(ydata)/2))*2 + 1].astype(dtype) #FIXME?
+        
+        yPow = 20*np.log10(np.sqrt(yRe**2 + yIm**2))
+        yPhase = np.arctan2(yIm,yRe)
+
         xdata = self._vna.query('OUTPSWPRM?').strip().split(',')
         xdata = np.array(xdata).astype(dtype)
-        return xdata, ydata
+        return xdata, yPow, yPhase
 
     def print_current_path(self):
         print(self._path)
         return 
 
-    def plot_data(self):
-        x,y = self.get_data()
+    def plot_power(self):
+        x, y, _ = self.get_data()
         plt.plot(x,y,color='k')
+        plt.show()
+        return
+
+    def plot_phase(self):
+        x, _, z = self.get_data()
+        plt.plot(x,z,color='k')
         plt.show()
         return
 
@@ -152,8 +165,8 @@ class Agilent4395A():
 
         self.get_init_par()
         lista = list(self._params.items())
-        x,y = self.get_data()
-        np.savetxt(save_path, np.array([x,y]).T)
+        x,y,z = self.get_data()
+        np.savetxt(save_path, np.array([x,y,z]).T)
         with open(save_path, "r+") as f:
             content = f.read()
             f.seek(0,0)
@@ -165,7 +178,11 @@ class Agilent4395A():
 
         if savePlot:
             plt.plot(x,y,c='k')
-            plt.savefig(save_path.rstrip('.dat')+'.png')
+            plt.savefig(save_path.rstrip('.dat')+'_pow.png')
+            plt.close()
+
+            plt.plot(x,z,c='k')
+            plt.savefig(save_path.rstrip('.dat')+'_phase.png')
             plt.close()
         return
 
@@ -185,18 +202,11 @@ class Agilent4395A():
         freq_min = float(self._vna.query('STAR?').strip())
         self._params["fmin"] = freq_min
         freq_max = float(self._vna.query('STOP?').strip())  
-        self._params["fmax"] = freq_max
-        #print("Npoints: ", npt)    
-        #print("Center: ", center)
-        #print("Sweep time: ", sweep_time)
-        #print("Span: ", span)
-        #print("IF BW: ", bw)
-        #print("Power: ", power)
-        #print("(freq_min, freq_max): ", freq_min, freq_max)      
+        self._params["fmax"] = freq_max    
         return self._params
 
     def find_peak(self, n_std=5,distance_f=500,rm_thr=600): #distance and rm_thr in Hz
-        x, y = self.get_data()
+        x, y, z = self.get_data()
         Y = np.abs(-y+y[np.argmin([y[0],y[-1]])]  )
         
         df = x[1]-x[0]
