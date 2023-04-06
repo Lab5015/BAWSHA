@@ -84,9 +84,6 @@ class ScanWriter:
                     file_path = path + '/'+ path_files[i]
                     
                     header = self.__read_header(file_path)
-                    IFBW_riso=header['bw']
-                    power_riso=header['power']
-                    f_center = header['center']
             
                     riso=all_data.create_group('resonance_'+str(i+1)) 
                     scan_riso=riso.create_group('parameters')
@@ -169,7 +166,7 @@ class ScanReader:
     def get_resonance(self,name=None,freq=None,loc=None):
         with h5py.File(self.__file,'r') as f:
             if freq is not None:
-                ff = self.get_parameters('f_center')
+                ff = self.get_parameters('fcenter')
                 resonance_name = self.get_resonances_list()[np.argmin(np.abs(ff-freq))]
             if name is not None:
                 resonance_name = name
