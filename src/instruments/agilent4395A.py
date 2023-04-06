@@ -190,7 +190,7 @@ class Agilent4395A():
         npt = float(self._vna.query('POIN?').strip())
         self._params["npt"] = npt
         center = float(self._vna.query('CENT?').strip())
-        self._params["center"] = center
+        self._params["fcenter"] = center
         sweep_time = float(self._vna.query('SWET?').strip())
         self._params["sweep"] = sweep_time
         span = float(self._vna.query('SPAN?').strip())
@@ -198,7 +198,7 @@ class Agilent4395A():
         bw = float(self._vna.query('BW?').strip())
         self._params["bw"] = bw
         power = float(self._vna.query('POWE?').strip())
-        self._params["power"] = power
+        self._params["input_power"] = power
         freq_min = float(self._vna.query('STAR?').strip())
         self._params["fmin"] = freq_min
         freq_max = float(self._vna.query('STOP?').strip())  
