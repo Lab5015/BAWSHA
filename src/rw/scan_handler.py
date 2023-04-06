@@ -90,9 +90,8 @@ class ScanWriter:
             
                     riso=all_data.create_group('resonance_'+str(i+1)) 
                     scan_riso=riso.create_group('parameters')
-                    scan_riso.create_dataset('ifbw',  data=IFBW_riso )
-                    scan_riso.create_dataset('input_power', data=power_riso)
-                    scan_riso.create_dataset('f_center', data=f_center)
+                    for key, item in header.items():
+                        scan_riso.create_dataset(key,  data=item )
                     
                     data = np.loadtxt(file_path)
                     data_riso=riso.create_group('data')  
