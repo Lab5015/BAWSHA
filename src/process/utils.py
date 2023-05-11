@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit 
+from scipy.integrate import simps
+
 
 def cauchy(x,gamma,center):
     return (1./np.pi)*gamma/((x-center)**2+gamma**2)
@@ -42,7 +44,10 @@ def fit_func(x,norm,gamma,center,m,offset,asim):
     return out
 
 
-def fit_resonance(freq,power,auto=True,thr=0.5,n=10,verbose=True):
+def fit_resonance(freq,power,auto=True,conversion='dBm-W',thr=0.5,n=10,verbose=True):
+    if conversion == 'dBm-W':
+        power = (10**(power/10))  # dBm to mW
+    
     if auto is True:
         MaxMin = np.max(power)-np.min(power)
         pos = np.where(power<=np.max(power)-thr*MaxMin)[0]
@@ -60,7 +65,7 @@ def fit_resonance(freq,power,auto=True,thr=0.5,n=10,verbose=True):
     gamma_guess = (freq[1]-freq[0])*5
     m_guess = np.polyfit(freq,power,deg=1)[0]
     offset_guess = np.polyfit(freq,power,deg=1)[1]
-    norm_guess = 1e-6
+    norm_guess = simps(power-power[0],freq)
     asim_guess = 1    
     
     initial_guess = np.array([norm_guess,gamma_guess,center_guess,m_guess,offset_guess,asim_guess])
