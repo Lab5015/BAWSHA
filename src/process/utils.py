@@ -13,8 +13,8 @@ def cauchy_asim(x,gamma,center,asim): #the gamma are HWHM
         if x < center:
             y = (gamma_l**2 )/ ((x - center)**2 + gamma_l**2) 
 
-            if x >= center:
-                y = (gamma_r**2 )/ ((x - center)**2 + gamma_r**2) 
+        if x >= center:
+            y = (gamma_r**2 )/ ((x - center)**2 + gamma_r**2) 
     else:
         pos_vec = np.where(x >= center)[0]
         pos = int(pos_vec[0]) 
