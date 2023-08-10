@@ -35,8 +35,8 @@ def main():
     print("Writing ", writer.get_file_name(), "...")
     writer.set_general_info(data=args.data,T_baw = args.temp, N_baw = args.baw, raw_data_path=args.folder_path,Note = args.note)
     print("Saving data...")
-    writer.write_resonances(path=args.folder_path,data_names=['freq', 'power','phase'], data_pos=[0, 1])
-        
+    writer.write_resonances(path=args.folder_path,data_names=['freq', 'power', 'phase'], data_pos=[0, 1, 2],file_name='Zoomed_peak_S11')
+
     reader = scan_handler.ScanReader(writer.get_file_name())
     n_resonance = len(reader.get_resonances_list())
     print(n_resonance, " resonances were found!")
@@ -52,13 +52,14 @@ def main():
             
             print("Resonance ", num, "/", n_resonance)
             num +=1
+
             try:
-                popt, perr = utils.fit_resonance(freq,power,verbose=False)
+                popt, perr = utils.fit_resonance(freq,power,verbose=False,conversion=None)
 
                 norm = popt[0]
                 gamma  = popt[1]  #MHz
-                f0     = popt[2] #MHz
-                offset = popt[-2]#dBm
+                f0     = popt[2]  #MHz
+                offset = popt[-2] #dBm
                 m      = popt[-3]
                 asim = popt[-1]
                 gamma_l = asim*gamma*2/(asim + 1.)

@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 import IPython
-from instruments import agilent4395A
+from instruments import agilent4395A, hp8753e
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
 
 def main():
 
-    VNA = agilent4395A.Agilent4395A()
+    #VNA = agilent4395A.Agilent4395A()
+    VNA = hp8753e.HP8753E()
     print("VNA object created!")
 
     usage='./launchscan.py -p save_path -fmin freq_min -fmax freq_max -plot True'
@@ -18,7 +19,7 @@ def main():
     parser.add_argument("-fmax", "--fstop"    , dest="fstop"    , type=float , help="center stop"  , required = True) 
     
     parser.add_argument("-plot", "--plot", dest="plot", type=bool , help="save plot in the folder "   , default = True)      
-    parser.add_argument("-pw", "--power", dest="power", type=float , help="power dBm"   , default = -20)  
+    parser.add_argument("-pw", "--power", dest="power", type=float , help="power dBm"   , default = -30)  
     parser.add_argument("-npt", "--npt", dest="npt", type=float , help="number of sweep points"   , default = 801) 
      
     parser.add_argument("-sl", "--span_large", dest="span_large", type=float , help="span large scan"   , default = 10e3)     

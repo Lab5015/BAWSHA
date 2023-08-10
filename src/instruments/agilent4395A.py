@@ -41,7 +41,7 @@ def progressBar(time_sleep=300):
 
 class Agilent4395A():
 
-    def __init__(self,name='GPIB0::17::INSTR'):
+    def __init__(self,name='GPIB0::16::INSTR'):
         resources = pyvisa.ResourceManager('@py')
         self._vna = resources.open_resource(name)
         self._sleep = 0.5       #sleep between commands
@@ -235,7 +235,7 @@ class Agilent4395A():
         if IFBW_large is None:
             IFBW_large = dic["bw"]
         if power is None:
-            power = dic["power"]
+            power = dic["input_power"]
 
         centers = np.arange(f_start+span_large/2 ,f_stop-span_large/2, span_large)
         count = 0;

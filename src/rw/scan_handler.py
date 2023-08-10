@@ -166,7 +166,7 @@ class ScanReader:
     def get_resonance(self,name=None,freq=None,loc=None):
         with h5py.File(self.__file,'r') as f:
             if freq is not None:
-                ff = self.get_parameters('center')
+                ff = self.get_parameters('f0')
                 resonance_name = self.get_resonances_list()[np.argmin(np.abs(ff-freq))]
             if name is not None:
                 resonance_name = name
