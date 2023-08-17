@@ -73,7 +73,7 @@ def fit_resonance(freq,power,auto=True,conversion='dBm-W',thr=0.5,n=10,verbose=T
     bounds = np.array([[-1e-3,(freq[-1]-freq[0])/1000,freq[0],np.min([m_guess/10,m_guess*10]),np.min([offset_guess/10,offset_guess*10]),0],
                        [1e-3,100*(freq[-1]-freq[0]),freq[-1],np.max([m_guess/10,m_guess*10]),np.max([offset_guess/10,offset_guess*10]),100]])
 
-    print(initial_guess,'\n',bounds)
+    #print(initial_guess,'\n',bounds)
 
     popt,pcov = curve_fit(fit_func,xdata=freq,ydata=power,p0=initial_guess,bounds=bounds)
 
@@ -81,7 +81,7 @@ def fit_resonance(freq,power,auto=True,conversion='dBm-W',thr=0.5,n=10,verbose=T
 
     if verbose is True:
         for i in range(len(popt)):
-            print('Parametro ciao', i+1, ': ', popt[i], ' +/- ', perr[i])
+            print('Parametro ', i+1, ': ', popt[i], ' +/- ', perr[i])
             
         Q_factor = popt[2]/(popt[1]*2)
         err = ((perr[2]/(popt[1]*2))**2+(popt[2]*perr[1]/(2*popt[2]**2))**2)**0.5
