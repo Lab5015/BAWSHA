@@ -229,7 +229,7 @@ class HP8753E():
 
         yIm = yIm - np.mean(yIm)  #FIXME? it seems that the phase is shifted. re-alining it to 0
 
-        yPow = 20*np.log10(np.sqrt(yRe**2 + yIm**2))
+        yPow = 20*np.log10(np.sqrt(yRe**2 + yIm**2))  #log mag
         yPhase = np.arctan2(yIm,yRe)
 
         xx = np.linspace(1, self._params.get("npt"), int(self._params.get("npt")))

@@ -66,35 +66,39 @@ class ScanWriter:
                 header[lista[0]] = float(lista[1])
         return header
     
-    def write_resonances(self, path=None, file_name = 'Zoomed', desin='.dat', data_names=['freq', 'power'], data_pos=[0, 1]) :        
+    def write_resonances(self, path=None, file_name = 'Zoomed', label = '', desin='.dat', data_names=['freq', 'power'], data_pos=[0, 1]) :        
         
         '''
         some info here
         
         '''
         with h5py.File(self.__file,'a') as f:
-            all_data=f.create_group('data')
+            all_data=f.require_group('data')
         
         
             path_files = os.listdir(path)
             #controllare che i files siano tutti .dat
 
+            count = 0
             for i in range(len(path_files)):
                 if (path_files[i].find(file_name) != -1) & ((path_files[i].find(desin) != -1)):
                     file_path = path + '/'+ path_files[i]
                     
                     header = self.__read_header(file_path)
-            
-                    riso=all_data.create_group('resonance_'+str(i+1)) 
-                    scan_riso=riso.create_group('parameters')
+
+                    riso=all_data.require_group('resonance_'+str(count+1)) 
+                    scan_riso=riso.require_group('parameters')
                     for key, item in header.items():
-                        scan_riso.create_dataset(key,  data=item )
+                        if key not in scan_riso:
+                            scan_riso.create_dataset(key,  data=item )
                     
                     data = np.loadtxt(file_path)
-                    data_riso=riso.create_group('data')  
-                    
+                    data_riso=riso.require_group('data'+label)
+
                     for k in range(len(data_pos)):
                         data_riso.create_dataset(data_names[k], data=data[:,int(data_pos[k])]  )  
+
+                    count = count+1
                 else:
                     pass
             
@@ -163,7 +167,7 @@ class ScanReader:
                 temp.append(np.array(value))
         return np.array(temp)
     
-    def get_resonance(self,name=None,freq=None,loc=None):
+    def get_resonance(self,name=None,freq=None,loc=None,label=''):
         with h5py.File(self.__file,'r') as f:
             if freq is not None:
                 ff = self.get_parameters('f0')
@@ -174,7 +178,16 @@ class ScanReader:
                 resonance_name = self.get_resonances_list()[loc]
             
             dic1 = self._convert_to_dict(f['data'][resonance_name][self._group_name])
-            dic2 = self._convert_to_dict(f['data'][resonance_name]['data'])
+            dic2 = self._convert_to_dict(f['data'][resonance_name]['data'+label])
             dic1.update(dic2)
             dic1['reso_name'] = resonance_name
         return dic1
+
+    def get_resonance_name(self,freq=None,loc=None):
+        with h5py.File(self.__file,'r') as f:
+            if freq is not None:
+                ff = self.get_parameters('f0')
+                resonance_name = self.get_resonances_list()[np.argmin(np.abs(ff-freq))]
+            if loc is not None:
+                resonance_name = self.get_resonances_list()[loc]
+        return resonance_name
