@@ -62,7 +62,12 @@ def fit_resonance(freq,power,auto=True,conversion='dBm-W',thr=0.5,n=10,verbose=T
         power=power[pmin:pmax]
 
 
-    center_guess = freq[np.argmax(power)]
+    center_guess = -1
+    if np.fabs(np.max(power)) > np.fabs(np.min(power)):
+        center_guess = freq[np.argmax(power)]  #positive peak
+    else:
+        center_guess = freq[np.argmin(power)]  #negative peak
+
     gamma_guess = (freq[1]-freq[0])*5
     m_guess = np.polyfit(freq,power,deg=1)[0]
     offset_guess = np.polyfit(freq,power,deg=1)[1]
