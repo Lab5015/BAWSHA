@@ -11,10 +11,9 @@ def main():
     VNA = hp8753e.HP8753E()
     print("VNA object created!")
 
-    usage='./launchscan.py -p save_path -fmin freq_min -fmax freq_max -plot True'
+    usage='./launchscan.py -fmin freq_min -fmax freq_max -plot True'
     parser = argparse.ArgumentParser(description='find and save (.txt) all the resonance peaks between two frequencies', usage=usage)
 
-    parser.add_argument("-p", "--path"   , dest="save_path"   , type=str , help="Output path"      , required = True)
     parser.add_argument("-fmin", "--fstart"    , dest="fstart"    , type=float , help="center start"  , required = True)
     parser.add_argument("-fmax", "--fstop"    , dest="fstop"    , type=float , help="center stop"  , required = True) 
     
@@ -33,7 +32,7 @@ def main():
     
     args = parser.parse_args()
 
-    VNA.set_save_path(args.save_path)
+
     VNA.routine(f_start=args.fstart, f_stop=args.fstop, span_large=args.span_large, IFBW_large=args.ifbw_large,
                 power=args.power, npt=args.npt, 
                 span_zoom=args.span_small, IFBW_zoom=args.ifbw_small, 

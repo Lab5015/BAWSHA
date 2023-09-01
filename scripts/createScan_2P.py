@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+import os
 
 
 from rw import scan_handler
@@ -17,8 +18,8 @@ def main():
     usage=''
     parser = argparse.ArgumentParser(description='find and save (.txt) all the resonance peaks between two frequencies', usage=usage)
 
-    parser.add_argument("-fp", "--folder_path"   , dest="folder_path"   , type=str , help="folder path with txt files"      , required = True)
-    parser.add_argument("-sp", "--save_path"    , dest="save_path"    , type=str , help="where to save the .scan file"  , required = True)
+    parser.add_argument("-fp", "--folder_path"   , dest="folder_path"   , type=str , help="folder path with txt files"  , default = '/home/cmsdaq/Analysis/Data/raw')
+    parser.add_argument("-sp", "--save_path"    , dest="save_path"      , type=str , help="where to save the .scan file", default = '/home/cmsdaq/Analysis/Data/reco')
     parser.add_argument("-rn", "--run_number"    , dest="run_number"    , type=int , help="run_number"  , required = True) 
     
     parser.add_argument("-d", "--data"    , dest="data"    , type=str , help="date of the measure"  , required = True) 
@@ -28,17 +29,21 @@ def main():
     
     parser.add_argument("-fit", "--fit", dest="fit", type=bool , help="do the fit "   , default = True)      
 
-
-    
     args = parser.parse_args()
 
 
+    # check if RAW data exist before doing anything
+    raw_data_path = args.folder_path+'/run%04d' % (int(args.run_number))
+    if not os.path.isdir(raw_data_path):
+        print('RAW DATA NOT FOUND!')
+        return
+
     writer = scan_handler.ScanWriter(args.run_number,args.save_path)
     print("Writing ", writer.get_file_name(), "...")
-    writer.set_general_info(data = args.data, T_baw = args.temp, N_baw = args.baw, raw_data_path=args.folder_path, Note = args.note)
+    writer.set_general_info(data = args.data, T_baw = args.temp, N_baw = args.baw, raw_data_path=raw_data_path, Note = args.note)
     print("Saving data...")
-    writer.write_resonances(path=args.folder_path, data_names=['freq', 'power', 'phase'], data_pos=[0, 1, 2], file_name='Zoomed_peak_S11', label="S11")
-    writer.write_resonances(path=args.folder_path, data_names=['freq', 'power', 'phase'], data_pos=[0, 1, 2], file_name='Zoomed_peak_S21', label="S21")
+    writer.write_resonances(path=raw_data_path, data_names=['freq', 'power', 'phase'], data_pos=[0, 1, 2], file_name='Zoomed_peak_S11', label="S11")
+    writer.write_resonances(path=raw_data_path, data_names=['freq', 'power', 'phase'], data_pos=[0, 1, 2], file_name='Zoomed_peak_S21', label="S21")
 
     reader = scan_handler.ScanReader(writer.get_file_name())
     n_resonance = len(reader.get_resonances_list())

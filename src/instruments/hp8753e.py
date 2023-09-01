@@ -54,6 +54,7 @@ class HP8753E():
         self._vna.write_termination = '\n'
 
         self._path = None  #save path for data files
+        self._run = -1     #default run number
         self._params = {}  #self._params["nome elemento"] = oggetto
 
         return
@@ -121,7 +122,6 @@ class HP8753E():
     def set_mode(self,mode):
         self._vna.write(mode)
         return
-
 
     def set_save_path(self,path):
         self._path = path
@@ -253,20 +253,32 @@ class HP8753E():
         plt.show()
         return
 
-    def save_data_txt(self,name='Run', savePlot=False):
-        save_path = ''
+    def make_new_run(self):
+        with open('/home/cmsdaq/Analysis/Data/last_run') as f:
+            runs = [int(x) for x in next(f).split()]
+            run = str(runs[0]+1)
+        os.remove('/home/cmsdaq/Analysis/Data/last_run')
+        with open('/home/cmsdaq/Analysis/Data/last_run','w+') as f:
+            f.write(run)
+        self.set_save_path("/home/cmsdaq/Analysis/Data/raw/run%04d" % (int(run)))
+        self.run = int(run)
+        return
+
+    def save_data_txt(self, name='Run', savePlot=False):
+    
+        file_name = 'run%04d' % (int(self.run))
         if name is not None:
-            save_path = name + '_'
-        save_path += time.strftime("%y:%m:%d:%H:%M:%S") + '.dat' 
+            file_name += ('_'+name)
+        file_name += '.dat' 
         if self._path is not None:
             os.system('mkdir -p ' + self._path)
-            save_path = self._path +"/" +save_path
+            file_name = self._path + "/" +file_name
 
         self.get_init_par()
         lista = list(self._params.items())
         x,y,z = self.get_data()
-        np.savetxt(save_path, np.array([x,y,z]).T)
-        with open(save_path, "r+") as f:
+        np.savetxt(file_name, np.array([x,y,z]).T)
+        with open(file_name, "r+") as f:
             content = f.read()
             f.seek(0,0)
             for j in range(len(lista)):
@@ -277,11 +289,11 @@ class HP8753E():
 
         if savePlot:
             plt.plot(x,y,c='k')
-            plt.savefig(save_path.rstrip('.dat')+'_pow.png')
+            plt.savefig(file_name.rstrip('.dat')+'_pow.png')
             plt.close()
 
             plt.plot(x,z,c='k')
-            plt.savefig(save_path.rstrip('.dat')+'_phase.png')
+            plt.savefig(file_name.rstrip('.dat')+'_phase.png')
             plt.close()
         return
 
@@ -327,6 +339,8 @@ class HP8753E():
 
     def routine(self, f_start = None, f_stop=None, span_large=None, IFBW_large = None, power=None,
                 npt = None, span_zoom=100, IFBW_zoom=30,thr_freq=1000, n_std=5,savePlot=False):
+
+        self.make_new_run()
 
         dic = self.get_init_par()
         if npt is None:
