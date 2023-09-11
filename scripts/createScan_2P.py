@@ -44,6 +44,7 @@ def main():
     print("Saving data...")
     writer.write_resonances(path=raw_data_path, data_names=['freq', 'power', 'phase'], data_pos=[0, 1, 2], file_name='Zoomed_peak_S11', label="S11")
     writer.write_resonances(path=raw_data_path, data_names=['freq', 'power', 'phase'], data_pos=[0, 1, 2], file_name='Zoomed_peak_S21', label="S21")
+    writer.write_resonances(path=raw_data_path, data_names=['freq', 'power', 'phase'], data_pos=[0, 1, 2], file_name='Zoomed_peak_S22', label="S22")
 
     reader = scan_handler.ScanReader(writer.get_file_name())
     n_resonance = len(reader.get_resonances_list())
@@ -60,7 +61,7 @@ def main():
             freq = reso["freq"]
             pow = reso["power"]
             pOn = np.min(pow)
-            pOff = np.max(pow)
+            pOff = (pow[0]+pow[-1])/2
             beta2 = 1/power_beta(pOn,pOff)
             Qcorr = (1 + 2*beta2)
             writer.save_parameter('data/'+res_name+'/parameters','Qcorr',Qcorr)

@@ -19,7 +19,7 @@ def main():
     
     parser.add_argument("-plot", "--plot", dest="plot", type=bool , help="save plot in the folder "   , default = True)      
     parser.add_argument("-pw", "--power", dest="power", type=float , help="power dBm"   , default = -30)  
-    parser.add_argument("-npt", "--npt", dest="npt", type=float , help="number of sweep points"   , default = 801) 
+    parser.add_argument("-npt", "--npt", dest="npt", type=float , help="number of sweep points"   , default = 1601) 
      
     parser.add_argument("-sl", "--span_large", dest="span_large", type=float , help="span large scan"   , default = 10e3)     
     parser.add_argument("-bwl", "--ifbw_large", dest="ifbw_large", type=float , help="ifbw large scan"   , default = 300)      

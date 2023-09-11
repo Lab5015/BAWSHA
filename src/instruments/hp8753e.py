@@ -227,7 +227,8 @@ class HP8753E():
         yRe = np.array(yRe)
         yIm = np.array(yIm)
 
-        yIm = yIm - np.mean(yIm)  #FIXME? it seems that the phase is shifted. re-alining it to 0
+        #yIm = yIm - np.mean(yIm)  #FIXME? it seems that the phase is shifted. re-alining it to 0. apparently not needed for RAKON
+        #yIm = yIm - yIm[-1]  #FIXME? it seems that the phase is shifted. re-alining it to 0. apparently not needed for RAKON
 
         yPow = 20*np.log10(np.sqrt(yRe**2 + yIm**2))  #log mag
         yPhase = np.arctan2(yIm,yRe)
@@ -235,20 +236,20 @@ class HP8753E():
         xx = np.linspace(1, self._params.get("npt"), int(self._params.get("npt")))
         xdata = self._params.get("fmin") + (xx - 1) * (self._params.get("fmax")-self._params.get("fmin")) / (self._params.get("npt") - 1)
 
-        return xdata, yPow, yPhase
+        return xdata, yPow, yPhase, yRe, yIm
     
     def print_current_path(self):
         print(self._path)
         return 
 
     def plot_power(self):
-        x, y, _ = self.get_data()
+        x, y, _, _, _ = self.get_data()
         plt.plot(x,y,color='k')
         plt.show()
         return
 
     def plot_phase(self):
-        x, _, z = self.get_data()
+        x, _, z, _, _ = self.get_data()
         plt.plot(x,z,color='k')
         plt.show()
         return
@@ -276,8 +277,8 @@ class HP8753E():
 
         self.get_init_par()
         lista = list(self._params.items())
-        x,y,z = self.get_data()
-        np.savetxt(file_name, np.array([x,y,z]).T)
+        x,y,z,re,im = self.get_data()
+        np.savetxt(file_name, np.array([x,y,z,re,im]).T)
         with open(file_name, "r+") as f:
             content = f.read()
             f.seek(0,0)
@@ -317,7 +318,7 @@ class HP8753E():
         return self._params
 
     def find_peak(self, n_std=5,distance_f=500,rm_thr=600): #distance and rm_thr in Hz
-        x, y, z = self.get_data()
+        x, y, z, _, _ = self.get_data()
         Y = np.abs(-y+y[np.argmin([y[0],y[-1]])]  )
         
         df = x[1]-x[0]
@@ -354,7 +355,7 @@ class HP8753E():
 
         count = 0;
         for i in centers:
-            self.start_single_measure(mode='S11',npt=npt,center=i,span=span_large,IFBW=IFBW_large,power=power)
+            self.start_single_measure(mode='S22',npt=npt,center=i,span=span_large,IFBW=IFBW_large,power=power)
             print(self.get_init_par())
             sweeping_time = self._params.get("sweep")
             #time.sleep(sweeping_time)
@@ -363,7 +364,7 @@ class HP8753E():
             if (len(freq) !=  0):
                 fmin = str(self._params["fmin"])
                 fmax = str(self._params["fmax"])
-                self.save_data_txt('Peak_S11'+'_'+fmin+'_'+fmax, savePlot=savePlot)
+                self.save_data_txt('Peak_S22'+'_'+fmin+'_'+fmax, savePlot=savePlot)
                 for f in freq:
                     count  = count + 1
                     new_c = f
@@ -372,6 +373,13 @@ class HP8753E():
                     self.start_single_measure(mode='S11',npt=npt,center=new_c,span=span_zoom,IFBW=IFBW_zoom,power=power)
                     print(self.get_init_par())
                     self.save_data_txt('Zoomed_peak_S11_'+str(count), savePlot=savePlot)
+
+                    print('###### Zooming in S22')
+                    self.start_single_measure(mode='S22',npt=npt,center=new_c,span=span_zoom,IFBW=IFBW_zoom,power=power)
+                    print(self.get_init_par())
+                    self.save_data_txt('Zoomed_peak_S22_'+str(count), savePlot=savePlot)
+
+
                     print('###### Zooming in S21')
                     self.start_single_measure(mode='S21',npt=npt,center=new_c,span=span_zoom,IFBW=IFBW_zoom,power=power)
                     print(self.get_init_par())
