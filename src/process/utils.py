@@ -40,7 +40,7 @@ def cauchy_asim(x,gamma,center,asim): #the gamma are HWHM
 
 def fit_func(x,norm,gamma,center,m,offset,asim):
     #out = offset+x*m-norm*cauchy(x,gamma,center)
-    out = offset+x*m-norm*cauchy_asim(x,gamma,center,asim)
+    out = offset+x*m+norm*cauchy_asim(x,gamma,center,asim)
     return out
 
 
