@@ -51,7 +51,7 @@ def fit_resonance(freq,power,auto=True,conversion='dBm-W',thr=0.5,n=10,verbose=T
     
     if auto is True:
         MaxMin = np.max(power)-np.min(power)
-        pos = np.where(power<=np.max(power)-thr*MaxMin)[0]
+        pos = np.where(power>=np.min(power)+thr*MaxMin)[0]
         pmin = pos[0]-len(pos)*n
         pmax = pos[-1]+len(pos)*n
         if pmin <0:
@@ -75,8 +75,8 @@ def fit_resonance(freq,power,auto=True,conversion='dBm-W',thr=0.5,n=10,verbose=T
     asim_guess = 1
     
     initial_guess = np.array([norm_guess,gamma_guess,center_guess,m_guess,offset_guess,asim_guess])
-    bounds = np.array([[-1e-3,(freq[-1]-freq[0])/1000,freq[0],np.min([m_guess/10,m_guess*10]),np.min([offset_guess/10,offset_guess*10]),0],
-                       [1e-3,100*(freq[-1]-freq[0]),freq[-1],np.max([m_guess/10,m_guess*10]),np.max([offset_guess/10,offset_guess*10]),100]])
+    bounds = np.array([[0,(freq[-1]-freq[0])/1000,freq[0],np.min([m_guess/10,m_guess*10]),np.min([offset_guess/10,offset_guess*10]),0],
+                       [100*norm_guess,100*(freq[-1]-freq[0]),freq[-1],np.max([m_guess/10,m_guess*10]),np.max([offset_guess/10,offset_guess*10]),100]])
 
     popt,pcov = curve_fit(fit_func,xdata=freq,ydata=power,p0=initial_guess,bounds=bounds)
 
