@@ -24,11 +24,11 @@ def main():
     parser.add_argument("-sl", "--span_large", dest="span_large", type=float , help="span large scan"   , default = 10e3)     
     parser.add_argument("-bwl", "--ifbw_large", dest="ifbw_large", type=float , help="ifbw large scan"   , default = 300)      
 
-    parser.add_argument("-sm", "--span_small", dest="span_small", type=float , help="span small scan"   , default = 100)   
-    parser.add_argument("-bws", "--ifbw_small", dest="ifbw_small", type=float , help="ifbw small scan"   , default = 30)
+    parser.add_argument("-sm", "--span_small", dest="span_small", type=float , help="span small scan"   , default = 200)   
+    parser.add_argument("-bws", "--ifbw_small", dest="ifbw_small", type=float , help="ifbw small scan"   , default = 10)
     
     parser.add_argument("-thr", "--threshold", dest="thr", type=float , help="threshold in Hz for ignore two nearby peaks"   , default = 1000)  
-    parser.add_argument("-std", "--std", dest="std", type=float , help="nx(std) to identify a peak"   , default = 5)  
+    parser.add_argument("-std", "--std", dest="std", type=float , help="nx(std) to identify a peak"   , default = 10)
     
     args = parser.parse_args()
 

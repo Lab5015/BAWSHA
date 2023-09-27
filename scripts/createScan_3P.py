@@ -65,7 +65,7 @@ def main():
                 offset_at_peak = offset + m*f0
                 Q_factor = f0/(gamma*2)
                 err = ((perr[2]/(popt[1]*2))**2+(popt[2]*perr[1]/(2*popt[2]**2))**2)**0.5
-                x = 10**(-depth/10) / 4
+                x = 10**(-depth/20) / 4
                 R_par = 50 * (x + np.sqrt(x)) / (1-x)
                 R_baw = 50*R_par / (50-R_par)
                 C_baw = 1. / (2. * np.pi*f0*1e6 * Q_factor * R_baw)

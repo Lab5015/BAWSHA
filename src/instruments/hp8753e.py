@@ -379,7 +379,6 @@ class HP8753E():
                     print(self.get_init_par())
                     self.save_data_txt('Zoomed_peak_S22_'+str(count), savePlot=savePlot)
 
-
                     print('###### Zooming in S21')
                     self.start_single_measure(mode='S21',npt=npt,center=new_c,span=span_zoom,IFBW=IFBW_zoom,power=power)
                     print(self.get_init_par())

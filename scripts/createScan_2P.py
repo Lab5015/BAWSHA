@@ -9,7 +9,7 @@ from rw import scan_handler
 from process import utils 
 
 def power_beta(on,off):
-    return (1-np.sqrt(10**(on/10)/10**(off/10)))/(1+np.sqrt(10**(on/10)/10**(off/10)))
+    return (1-np.sqrt(10**(on/20)/10**(off/20)))/(1+np.sqrt(10**(on/20)/10**(off/20)))
 
 
 def main():
@@ -56,22 +56,31 @@ def main():
         counter_wrong = 0
         for res_name in reader.get_resonances_list():
             
-            #compute the Beta correction on the negative S11 resonance
-            reso = reader.get_resonance(name=res_name, label='S11')
+            #compute the Beta correction on the negative S22 resonance
+            reso = reader.get_resonance(name=res_name, label='S22')
             freq = reso["freq"]
             pow = reso["power"]
             pOn = np.min(pow)
-            pOff = (pow[0]+pow[-1])/2
-            beta2 = 1/power_beta(pOn,pOff)
+            pOff = pow[-1] #take the baseline far from the peak
+            phase = reso['phase']
+            phase = np.unwrap(phase)
+            delta_phase = np.max(phase)-np.min(phase)
+            
+            if delta_phase > np.pi :  #over_coupled
+                beta2 = 1/power_beta(pOn,pOff)
+            else:
+                beta2 = power_beta(pOn,pOff)
             Qcorr = (1 + 2*beta2)
             writer.save_parameter('data/'+res_name+'/parameters','Qcorr',Qcorr)
 
             #fit the positive resonance S21
             reso = reader.get_resonance(name=res_name, label='S21')
             freq = reso['freq']*1e-6
-            power = reso['power']
+            power = reso['power']  
             print("Resonance ", num, "/", n_resonance)
             num +=1
+            
+                
             try:
                 popt, perr = utils.fit_resonance(freq,power,verbose=False,conversion='dBm-W')
                 norm = popt[0]

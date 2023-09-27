@@ -47,7 +47,7 @@ def fit_func(x,norm,gamma,center,m,offset,asim):
 def fit_resonance(freq,power,auto=True,conversion='dBm-W',thr=0.5,n=10,verbose=True):
     if conversion == 'dBm-W':
         print('conversion is:',conversion)
-        power = (10**(power/10))  # dBm to mW
+        power = (10**(power/20))  # dBm to mW
     
     if auto is True:
         MaxMin = np.max(power)-np.min(power)
