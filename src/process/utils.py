@@ -47,7 +47,10 @@ def fit_func(x,norm,gamma,center,m,offset,asim):
 def fit_resonance(freq,power,auto=True,conversion='dBm-W',thr=0.5,n=10,verbose=True):
     if conversion == 'dBm-W':
         print('conversion is:',conversion)
-        power = (10**(power/20))  # dBm to mW
+        power = (10**(power/20))  # dB(W) to voltage ratio
+        
+    power_original = power
+    freq_original = freq    
     
     if auto is True:
         MaxMin = np.max(power)-np.min(power)
@@ -91,8 +94,9 @@ def fit_resonance(freq,power,auto=True,conversion='dBm-W',thr=0.5,n=10,verbose=T
         err = ((perr[2]/(popt[1]*2))**2+(popt[2]*perr[1]/(2*popt[2]**2))**2)**0.5
         print('Q = ' + "{:.2e}".format(Q_factor),' +/- ', err)
         
-        plt.plot(freq,power,'.',c='k',label='data')
-        plt.plot(freq,fit_func(freq,*popt),color='r',label='Fit')
+        plt.plot(freq_original,power_original,'.',c='k',label='Data')
+        plt.plot(freq,power,'+',c='b',label='Fit Data')
+        plt.plot(freq_original,fit_func(freq_original,*popt),color='r',label='Fit')
         plt.grid(alpha=0.6)
         plt.legend()
         plt.show()
