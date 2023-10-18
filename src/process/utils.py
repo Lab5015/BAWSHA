@@ -42,6 +42,28 @@ def fit_func(x,norm,gamma,center,m,offset,asim):
     #out = offset+x*m-norm*cauchy(x,gamma,center)
     out = offset+x*m+norm*cauchy_asim(x,gamma,center,asim)
     return out
+    
+def Q_raw(freq,power,thr=0.5,conversion='dB-lin'):
+    if conversion == 'dB-lin':
+        print('conversion is:',conversion)
+        power = (10**(power/20))  # dB(W) to voltage ratio
+    # X is the frequency, Y the is the resonance.
+    pos_max = np.argmax(power)
+    par = np.polyfit(np.arange(5),power[pos_max-2:pos_max+3],deg=2)
+    x_max = -par[1]/(2*par[0])
+    y_max = np.poly1d(par)(x_max)
+    pos_thr =np.where(power>=y_max*thr)[0][[0,-1]]
+
+    m, q = np.polyfit([pos_thr[0]-1,pos_thr[0]],power[pos_thr[0]-1:pos_thr[0]+1],deg=1)
+    x1 = (y_max*thr-q)/m
+
+    m, q = np.polyfit([pos_thr[1],pos_thr[1]+1],power[pos_thr[1]:pos_thr[1]+2],deg=1)
+    x2 = (y_max*thr-q)/m
+
+    dF = (x2-x1)*(freq[1]-freq[0])
+    f0 = X[pos_max-2]+x_max*(freq[1]-freq[0])
+    Q = f0 / dF
+    return Q, f0, y_max
 
 
 def fit_resonance(freq,power,auto=True,conversion='dB-lin',thr=0.5,n=10,verbose=True):
