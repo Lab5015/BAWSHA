@@ -44,11 +44,14 @@ def fit_func(x,norm,gamma,center,m,offset,asim):
     return out
 
 
-def fit_resonance(freq,power,auto=True,conversion='dBm-W',thr=0.5,n=10,verbose=True):
-    if conversion == 'dBm-W':
+def fit_resonance(freq,power,auto=True,conversion='dB-lin',thr=0.5,n=10,verbose=True):
+    if conversion == 'dB-lin':
         print('conversion is:',conversion)
         power = (10**(power/20))  # dB(W) to voltage ratio
-        
+    if conversion == 'dBm-W':
+        print('conversion is:',conversion)
+        power = (10**(power/10))  # dB(W) to voltage ratio
+                
     power_original = power
     freq_original = freq    
     
@@ -81,12 +84,16 @@ def fit_resonance(freq,power,auto=True,conversion='dBm-W',thr=0.5,n=10,verbose=T
     bounds = np.array([[0,(freq[-1]-freq[0])/1000,freq[0],np.min([m_guess/10,m_guess*10]),np.min([offset_guess/10,offset_guess*10]),0],
                        [100*norm_guess,100*(freq[-1]-freq[0]),freq[-1],np.max([m_guess/10,m_guess*10]),np.max([offset_guess/10,offset_guess*10]),100]])
 
+
+    if verbose is True:
+        print(initial_guess,'\n',bounds)
+
+
     popt,pcov = curve_fit(fit_func,xdata=freq,ydata=power,p0=initial_guess,bounds=bounds)
 
     perr = (np.diag(pcov))**0.5
 
     if verbose is True:
-        print(initial_guess,'\n',bounds)
         for i in range(len(popt)):
             print('Parametro ', i+1, ': ', popt[i], ' +/- ', perr[i])
             

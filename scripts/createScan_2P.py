@@ -82,7 +82,7 @@ def main():
             
                 
             try:
-                popt, perr = utils.fit_resonance(freq,power,verbose=False,conversion='dBm-W')
+                popt, perr = utils.fit_resonance(freq,power,verbose=False)
                 norm = popt[0]
                 gamma  = popt[1]  #MHz
                 f0     = popt[2]  #MHz
