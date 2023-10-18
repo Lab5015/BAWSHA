@@ -11,6 +11,22 @@ from process import utils
 def power_beta(on,off):
     return (1-np.sqrt(10**(on/20)/10**(off/20)))/(1+np.sqrt(10**(on/20)/10**(off/20)))
 
+def computeBeta(reso):
+    freq = reso["freq"]
+    pow = reso["power"]
+    pOn = np.min(pow)
+    pOff = pow[-1] #take the baseline far from the peak
+    phase = reso['phase']
+    phase = np.unwrap(phase)
+    delta_phase = np.max(phase)-np.min(phase)
+
+    if delta_phase > np.pi :  #over_coupled
+        beta = 1/power_beta(pOn,pOff)
+    else:
+        beta = power_beta(pOn,pOff)
+
+    return beta
+
 
 def main():
 
@@ -56,21 +72,12 @@ def main():
         counter_wrong = 0
         for res_name in reader.get_resonances_list():
             
-            #compute the Beta correction on the negative S22 resonance
+            #compute the Beta correction on the negative S11 and S22 resonance
+            reso = reader.get_resonance(name=res_name, label='S11')
+            beta1 = computeBeta(reso)
             reso = reader.get_resonance(name=res_name, label='S22')
-            freq = reso["freq"]
-            pow = reso["power"]
-            pOn = np.min(pow)
-            pOff = pow[-1] #take the baseline far from the peak
-            phase = reso['phase']
-            phase = np.unwrap(phase)
-            delta_phase = np.max(phase)-np.min(phase)
-            
-            if delta_phase > np.pi :  #over_coupled
-                beta2 = 1/power_beta(pOn,pOff)
-            else:
-                beta2 = power_beta(pOn,pOff)
-            Qcorr = (1 + 2*beta2)
+            beta2 = computeBeta(reso)
+            Qcorr = (1 + beta1 + beta2)
             writer.save_parameter('data/'+res_name+'/parameters','Qcorr',Qcorr)
 
             #fit the positive resonance S21
