@@ -61,7 +61,7 @@ def Q_raw(freq,power,thr=0.5,conversion='dB-lin'):
     x2 = (y_max*thr-q)/m
 
     dF = (x2-x1)*(freq[1]-freq[0])
-    f0 = X[pos_max-2]+x_max*(freq[1]-freq[0])
+    f0 = freq[pos_max-2]+x_max*(freq[1]-freq[0])
     Q = f0 / dF
     return Q, f0, y_max
 
