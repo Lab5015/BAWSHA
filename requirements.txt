@@ -16,3 +16,4 @@ pyusb==1.2.1
 PyVISA==1.11.3
 PyVISA-py==0.5.2
 scipy==1.5.4
+simple_pid==2.0.0

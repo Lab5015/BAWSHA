@@ -85,7 +85,7 @@ while True:
 
         V = ps.meas_V()
         print(datetime.now())
-        print("--- setting PS voltage to "+str(new_voltage)+" V    [DUT temperature: "+str(temp)+"° C]")
+        print("--- setting PS voltage to "+str(new_voltage)+" V    [DUT temperature: "+str(temp)+"° K]")
         ps.set_V(new_voltage)
         sleep_time = 5
         print("--- sleeping for "+str(sleep_time)+" s   [kill at any time with ctrl-C]\n")
