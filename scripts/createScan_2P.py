@@ -87,6 +87,15 @@ def main():
             print("Resonance ", num, "/", n_resonance)
             num +=1
             
+            try:
+                Q_raw,f0,depth = utils.Q_raw(freq,power)
+                writer.save_parameter('data/'+res_name+'/parameters','Qr',Q_raw)
+                writer.save_parameter('data/'+res_name+'/parameters','depth',depth)
+                writer.save_parameter('data/'+res_name+'/parameters','f0',f0)
+            except:
+                writer.save_parameter('data/'+res_name+'/parameters','Qr',-2)    
+                writer.save_parameter('data/'+res_name+'/parameters','f0',-2)
+                writer.save_parameter('data/'+res_name+'/parameters','depth',-2)
                 
             try:
                 Q_raw = utils.Q_raw(freq,power)[0] 
@@ -109,13 +118,10 @@ def main():
                 C_baw = 1. / (2. * np.pi*f0*1e6 * Q_factor * R_baw)
                 L_baw = 1. / (4. * (np.pi**2) * ((f0*1e6)**2) * C_baw)
                 writer.save_parameter('data/'+res_name+'/parameters','Q',Q_factor)
-                writer.save_parameter('data/'+res_name+'/parameters','Qr',Q_raw)
                 writer.save_parameter('data/'+res_name+'/parameters','er_Q',err)                
-                writer.save_parameter('data/'+res_name+'/parameters','depth',depth)
                 writer.save_parameter('data/'+res_name+'/parameters','gamma',gamma)
                 writer.save_parameter('data/'+res_name+'/parameters','er_gamma',perr[1])
-                writer.save_parameter('data/'+res_name+'/parameters','f0',f0)
-                writer.save_parameter('data/'+res_name+'/parameters','er_f0',perr[2])
+                #writer.save_parameter('data/'+res_name+'/parameters','er_f0',perr[2])
                 writer.save_parameter('data/'+res_name+'/parameters','offset_at_peak',offset_at_peak)
                 writer.save_parameter('data/'+res_name+'/parameters','norm',norm)
                 writer.save_parameter('data/'+res_name+'/parameters','er_norm',perr[0])
@@ -129,13 +135,10 @@ def main():
             except:
                 counter_wrong +=1
                 writer.save_parameter('data/'+res_name+'/parameters','Q',-2)
-                writer.save_parameter('data/'+res_name+'/parameters','Qr',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','er_Q',-2)                
-                writer.save_parameter('data/'+res_name+'/parameters','depth',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','gamma',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','er_gamma',-2)
-                writer.save_parameter('data/'+res_name+'/parameters','f0',-2)
-                writer.save_parameter('data/'+res_name+'/parameters','er_f0',-2)
+                #writer.save_parameter('data/'+res_name+'/parameters','er_f0',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','offset_at_peak',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','norm',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','er_norm',-2)
