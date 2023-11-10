@@ -18,6 +18,8 @@ tempFile += '/tempLog.txt'
 
 with open(tempFile, 'a') as f:
     f.write(str(datetime.now())+' ')
-    f.write(' ----> '+str(curr_temp)+'\n')
+    mytemp = ' ----> '+str(curr_temp)+'\n'
+    print(mytemp)
+    f.write(mytemp)
 
 

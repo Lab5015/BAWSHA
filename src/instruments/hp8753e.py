@@ -351,7 +351,7 @@ class HP8753E():
         if power is None:
             power = dic["power"]
 
-        centers = np.arange(f_start+span_large/2 ,f_stop-span_large/2, span_large)
+        centers = np.arange(f_start+span_large/2 ,f_stop-span_large/2, span_large)  #*0.8) #superimposition between intervals needed
 
         count = 0;
         for i in centers:
@@ -368,7 +368,13 @@ class HP8753E():
                 for f in freq:
                     count  = count + 1
                     new_c = f
+
                     print("### Peak found! Number: ", count)
+                    print('###### Zooming in S21')
+                    self.start_single_measure(mode='S21',npt=npt,center=new_c,span=span_zoom,IFBW=IFBW_zoom,power=power)
+                    print(self.get_init_par())
+                    self.save_data_txt('Zoomed_peak_S21_'+str(count), savePlot=savePlot)
+
                     print('###### Zooming in S11')
                     self.start_single_measure(mode='S11',npt=npt,center=new_c,span=span_zoom,IFBW=IFBW_zoom,power=power)
                     print(self.get_init_par())
@@ -378,11 +384,6 @@ class HP8753E():
                     self.start_single_measure(mode='S22',npt=npt,center=new_c,span=span_zoom,IFBW=IFBW_zoom,power=power)
                     print(self.get_init_par())
                     self.save_data_txt('Zoomed_peak_S22_'+str(count), savePlot=savePlot)
-
-                    print('###### Zooming in S21')
-                    self.start_single_measure(mode='S21',npt=npt,center=new_c,span=span_zoom,IFBW=IFBW_zoom,power=power)
-                    print(self.get_init_par())
-                    self.save_data_txt('Zoomed_peak_S21_'+str(count), savePlot=savePlot)
                     print('######')
 
         return

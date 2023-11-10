@@ -12,11 +12,11 @@ def main():
     print("VNA object created!")
 
     VNA.set_power(-30)
-    VNA.set_center(5174189)
-#    VNA.set_center(5167987)
-    VNA.set_span(200)
+    VNA.set_center(8391898)
+    #VNA.set_center(5749951)
+    VNA.set_span(750)
     VNA.set_IFBW(30)
-    VNA.set_point(1601)
+    VNA.set_point(801)
     VNA.set_mode('S11')
 
     IPython.embed()

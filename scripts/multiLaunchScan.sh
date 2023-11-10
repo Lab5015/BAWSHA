@@ -1,10 +1,10 @@
 #!/bin/bash
 
-for temp in {5..12}
+for temp in {25..25}
 do
     echo "TARGET TEMP: $temp"
 
-    setTemp.py --target $temp > /tmp/logScan.txt  #reset and start a new log
+    time setTemp.py --target $temp > /tmp/logScan.txt  #reset and start a new log
     sleep 300
     launchScan.py -fcen 4.99308e6  -sl 200 -sm 60 -bws 10 -bwl 100  -npt 1601   >> /tmp/logScan.txt #3C
     logTemp.py

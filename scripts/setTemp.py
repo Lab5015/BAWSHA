@@ -17,10 +17,10 @@ parser.add_option("--target", type=float, dest="target", default=4.0)
 debug = True
 
 min_voltage = 0.
-max_voltage = 8.
+max_voltage = 13.
 
 min_temp_safe = 0.   #K
-max_temp_safe = 25.  #K
+max_temp_safe = 31.  #K
 
 sensorName = 'D4'
 
@@ -54,7 +54,7 @@ new_voltage = V
 print("--- [Current DUT temperature: "+str(curr_temp)+"° K]\n")
 sys.stdout.flush()
 
-pid = PID(0.5, 0., 1, setpoint=options.target)
+pid = PID(0.1, 0., 1, setpoint=options.target)
 pid.output_limits = (-2, 2)
 
 
