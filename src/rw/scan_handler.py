@@ -10,7 +10,7 @@ class ScanWriter:
     
     '''
     
-    def __init__(self, run=None, output_path=None, name=None):
+    def __init__(self, run=None, output_path=None, name=None,overwrite=False):
         
         '''
         some info here
@@ -21,27 +21,34 @@ class ScanWriter:
         else:
             name_file = 'run%04d.scan' % (int(run))
             self.__file = output_path+'/'+name_file
-            if os.path.isfile(self.__file):
-                os.remove(self.__file)  #remove old reco in case it exists already and write a new scan file
+            if overwrite == True:
+                if os.path.isfile(self.__file):
+                    os.remove(self.__file)  #remove old reco in case it exists already and write a new scan file
+        self._temperature = None
         
     def get_file_name(self):
         return self.__file
     
-    def set_general_info(self, data='16/03', T_baw=0.2, N_baw=1,raw_data_path = '' ,Note=None):
+    def set_general_info(self, data='16/03', N_baw=1,raw_data_path = '' ,Note=None):
         
         '''
         some info here
         
         '''
         with h5py.File(self.__file,'a') as f:
-            general_info=f.create_group('info')
-        
+            if 'info' in f.keys():
+                return    
+            else:
+                general_info=f.create_group('info')
             general_info.create_dataset('raw_data_path', data=str(raw_data_path) )
             general_info.create_dataset('date', data=str(data) )
-            general_info.create_dataset('temperature', data=T_baw )
             general_info.create_dataset('baw_number', data=str(N_baw) )
             general_info.create_dataset('note', data=str(Note) )
         
+        return
+        
+    def set_temperature(self,T=None):
+        self._temperature = str(T)
         return
     
     def __read_header(self,fname):
@@ -63,9 +70,20 @@ class ScanWriter:
         some info here
         
         '''
+        if self._temperature is None:
+            print("Error! Set the temperature first!")
+            return
+            
         with h5py.File(self.__file,'a') as f:
-            all_data=f.require_group('data')
-        
+            if "data" in f.keys():
+                all_data = f["data"]
+            else:
+                all_data = f.create_group("data")
+                
+            if self._temperature in all_data.keys():
+                selected_data = all_data[self._temperature]
+            else:
+                selected_data=all_data.create_group(self._temperature)
         
             path_files = os.listdir(path)
             #controllare che i files siano tutti .dat
@@ -77,7 +95,7 @@ class ScanWriter:
                     
                     header = self.__read_header(file_path)
 
-                    riso=all_data.require_group('resonance_'+str(count+1)) 
+                    riso=selected_data.require_group('resonance_'+str(count+1)) 
                     scan_riso=riso.require_group('parameters')
                     for key, item in header.items():
                         if key not in scan_riso:
@@ -96,6 +114,12 @@ class ScanWriter:
             
         return
         
+    def overwrite_temperature(self):
+        with h5py.File(self.__file,'a') as f: 
+            all_data = f.require_group("data")
+            if self._temperature in all_data.keys(): 
+                del all_data[self._temperature]
+        return
 
     def save_parameter(self,path,name,value):
  
@@ -116,6 +140,8 @@ class ScanReader:
         self.__file = path_file
         #self._file=h5py.File(path_file, "r")
         self._group_name = 'parameters'
+        self.set_temperature(self.get_temperatures()[0])
+        self._dlabel = "data"+"/"+self._temperature
 
     def _convert_to_dict(self, group):
         dic = {}
@@ -133,11 +159,20 @@ class ScanReader:
         
     def _group_tags(self,location):
         with h5py.File(self.__file,'r') as f:
-            return list(f['data'][list(f['data'].keys())[0]][location].keys())
+            return list(f[self._dlabel][list(f[self._dlabel].keys())[0]][location].keys())
     
     def set_group_name(self,name):
         self._group_name = name
         return
+        
+    def get_temperatures(self):
+        with h5py.File(self.__file,'r') as f:
+            return list(f['data'].keys())     
+            
+    def set_temperature(self,T):
+        self._temperature = str(T)
+        self._dlabel = "data"+"/"+self._temperature
+        return   
     
     def get_scan_info(self):
         with h5py.File(self.__file,'r') as f:
@@ -145,16 +180,19 @@ class ScanReader:
             
     def get_resonances_list(self):
         with h5py.File(self.__file,'r') as f:
-            return list(f['data'].keys())
+            return list(f[self._dlabel].keys())
     
     def get_parameters_tags(self):
         return self._group_tags(self._group_name)
 
-    def get_parameters(self,name=None):
+    def get_parameters(self,name=None,default=-2):
         with h5py.File(self.__file,'r') as f:
             temp = []
-            for el in f['data'].keys():
-                value = f['data'][el][self._group_name][name]
+            for el in f[self._dlabel].keys():
+                if name in f[self._dlabel][el][self._group_name].keys():
+                    value = f[self._dlabel][el][self._group_name][name]
+                else:
+                    value = default
                 temp.append(np.array(value))
         return np.array(temp)
     
@@ -168,8 +206,8 @@ class ScanReader:
             if loc is not None:
                 resonance_name = self.get_resonances_list()[loc]
             
-            dic1 = self._convert_to_dict(f['data'][resonance_name][self._group_name])
-            dic2 = self._convert_to_dict(f['data'][resonance_name]['data'+label])
+            dic1 = self._convert_to_dict(f[self._dlabel][resonance_name][self._group_name])
+            dic2 = self._convert_to_dict(f[self._dlabel][resonance_name]["data"+label])
             dic1.update(dic2)
             dic1['reso_name'] = resonance_name
         return dic1
