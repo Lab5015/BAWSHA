@@ -37,10 +37,11 @@ def main():
     parser.add_argument("-fp", "--folder_path"   , dest="folder_path"   , type=str , help="folder path with txt files"  , default = '/home/cmsdaq/Analysis/Data/raw')
     parser.add_argument("-sp", "--save_path"    , dest="save_path"      , type=str , help="where to save the .scan file", default = '/home/cmsdaq/Analysis/Data/reco')
     parser.add_argument("-rn", "--run_number"    , dest="run_number"    , type=int , help="run_number"  , required = True) 
+    parser.add_argument("-n",  "--name"          , dest="name"          , type=str , help="output file name"  , required = False,default = None) 
     
     parser.add_argument("-d", "--data"    , dest="data"    , type=str , help="date of the measure"  , required = True) 
-    parser.add_argument("-t", "--temperature"    , dest="temp"    , type=float , help="temperature of the BAW (K)"  , required = True) 
-    parser.add_argument("-bn", "--baw_number"    , dest="baw"    , type=float , help="baw_number"  , required = True) 
+    parser.add_argument("-t", "--temperature"    , dest="temp"    , type=str , help="temperature of the BAW (K)"  , required = True) 
+    parser.add_argument("-bn", "--baw_number"    , dest="baw"    , type=str , help="baw number or label"  , required = True) 
     parser.add_argument("-note", "--note"    , dest="note"    , type=str , help="additional note"  , default = '') 
     
     parser.add_argument("-fit", "--fit", dest="fit", type=bool , help="do the fit "   , default = True)      
@@ -49,54 +50,84 @@ def main():
 
 
     # check if RAW data exist before doing anything
-    raw_data_path = args.folder_path+'/run%04d' % (int(args.run_number))
+    if args.folder_path == '/home/cmsdaq/Analysis/Data/raw':
+        raw_data_path = args.folder_path+'/run%04d' % (int(args.run_number))
+    else:
+        raw_data_path = args.folder_path
+    print(raw_data_path)
     if not os.path.isdir(raw_data_path):
         print('RAW DATA NOT FOUND!')
         return
 
-    writer = scan_handler.ScanWriter(args.run_number,args.save_path)
+    writer = scan_handler.ScanWriter(args.run_number,args.save_path,name=args.name)
     print("Writing ", writer.get_file_name(), "...")
-    writer.set_general_info(data = args.data, T_baw = args.temp, N_baw = args.baw, raw_data_path=raw_data_path, Note = args.note)
+    writer.set_general_info(data = args.data,N_baw = args.baw, raw_data_path=raw_data_path, Note = args.note)
+    T = str(args.temp)
+    print("Setting temperature to", args.temp, " K")
+    writer.set_temperature(args.temp)    
+    writer.overwrite_temperature()
     print("Saving data...")
     writer.write_resonances(path=raw_data_path, data_names=['freq', 'power', 'phase'], data_pos=[0, 1, 2], file_name='Zoomed_peak_S11', label="S11")
     writer.write_resonances(path=raw_data_path, data_names=['freq', 'power', 'phase'], data_pos=[0, 1, 2], file_name='Zoomed_peak_S21', label="S21")
     writer.write_resonances(path=raw_data_path, data_names=['freq', 'power', 'phase'], data_pos=[0, 1, 2], file_name='Zoomed_peak_S22', label="S22")
 
     reader = scan_handler.ScanReader(writer.get_file_name())
+    print("Temperature in the .scan (K): ",reader.get_temperatures())
+    reader.set_temperature(args.temp)
     n_resonance = len(reader.get_resonances_list())
     print(n_resonance, " resonances were found!")
 
     if args.fit is True:    
         print("Fitting the resonances...")
         num = 1
-        counter_wrong = 0
+        counter_wrong_raw = 0
+        counter_wrong_bvd = 0
+        counter_wrong_circle = 0
         for res_name in reader.get_resonances_list():
             
-            #compute the Beta correction on the negative S11 and S22 resonance
-            reso = reader.get_resonance(name=res_name, label='S11')
-            beta1 = computeBeta(reso)
-            reso = reader.get_resonance(name=res_name, label='S22')
-            beta2 = computeBeta(reso)
-            Qcorr = (1 + beta1 + beta2)
-            writer.save_parameter('data/'+res_name+'/parameters','Qcorr',Qcorr)
-
+            hdfpath = 'data/'+T+"/"+res_name
+            
             #fit the positive resonance S21
             reso = reader.get_resonance(name=res_name, label='S21')
-            freq = reso['freq']*1e-6
+            freq = reso['freq']
             power = reso['power']  
+            phase = reso["phase"]
+            print(freq.shape,freq[:2],res_name)
+            
             print("Resonance ", num, "/", n_resonance)
             num +=1
-            
             try:
                 Q_raw,f0,depth = utils.Q_raw(freq,power)
-                writer.save_parameter('data/'+res_name+'/parameters','Qr',Q_raw)
-                writer.save_parameter('data/'+res_name+'/parameters','depth',depth)
-                writer.save_parameter('data/'+res_name+'/parameters','f0',f0)
-            except:
-                writer.save_parameter('data/'+res_name+'/parameters','Qr',-2)    
-                writer.save_parameter('data/'+res_name+'/parameters','f0',-2)
-                writer.save_parameter('data/'+res_name+'/parameters','depth',-2)
+                writer.save_parameter(hdfpath+'/parameters','Qr',Q_raw)
+                writer.save_parameter(hdfpath+'/parameters','depth',depth)
+                writer.save_parameter(hdfpath+'/parameters','f0',f0)
+            except Exception as e: 
+                print("Error in raw fit:",e)
+                counter_wrong_raw += 1
                 
+            try:
+                _,R,L,C,C0,Q0 = utils.fit_resonance_bvd(freq,power,phase)
+                writer.save_parameter(hdfpath+'/parameters','Q0_bvd',Q0)
+                writer.save_parameter(hdfpath+'/parameters','R',R)
+                writer.save_parameter(hdfpath+'/parameters','L',L)
+                writer.save_parameter(hdfpath+'/parameters','C',C)
+                writer.save_parameter(hdfpath+'/parameters','C0',C0)                           
+            except Exception as e: 
+                print("Error in bvd fit:",e)
+                counter_wrong_bvd += 1    
+                
+            try:
+                _, Ql, Q0, b1, b2 = utils.fit_resonance_circle(reader.get_resonance(name=res_name, label='S21'),reader.get_resonance(name=res_name, label='S22'),
+                                                         reader.get_resonance(name=res_name, label='S11'))
+
+                writer.save_parameter(hdfpath+'/parameters','Ql_c',Ql)
+                writer.save_parameter(hdfpath+'/parameters','Q0_c',Q0)
+                writer.save_parameter(hdfpath+'/parameters','b1',b1)
+                writer.save_parameter(hdfpath+'/parameters','b2',b2)
+            except Exception as e: 
+                print("Error in circle fit:",e)
+                counter_wrong_circle += 1 
+            '''
             try:
                 Q_raw = utils.Q_raw(freq,power)[0] 
                 popt, perr = utils.fit_resonance(freq,power,verbose=False)
@@ -149,8 +180,9 @@ def main():
                 writer.save_parameter('data/'+res_name+'/parameters','R_baw',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','R_par',-2)
                 writer.save_parameter('data/'+res_name+'/parameters','x',-2)
-
-        print("All done! The fit procedure failed for ", counter_wrong, " resonances. For them a value of -2 has been assigned.")    
-        
+        '''
+        print("All done! The raw fit procedure failed for ", counter_wrong_raw, " resonances.")    
+        print("All done! The bvd fit procedure failed for ", counter_wrong_bvd, " resonances.")    
+        print("All done! The circe fit procedure failed for ", counter_wrong_circle, " resonances.")    
 if __name__ == "__main__":
     main()
