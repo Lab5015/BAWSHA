@@ -1,7 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit 
-from scipy.integrate import simps
+try :
+    from scipy.integrate import simpson as simps
+except:
+    from scipy.integrate import simps
+from iminuit import cost,Minuit,describe
+from scipy import interpolate
+from scipy import optimize
+import iminuit
 
 
 def cauchy(x,gamma,center):
@@ -43,17 +50,20 @@ def fit_func(x,norm,gamma,center,m,offset,asim):
     out = offset+x*m+norm*cauchy_asim(x,gamma,center,asim)
     return out
     
-def Q_raw(freq,power,thr=0.5,conversion='dB-lin'):
+def Q_raw(freq,power,thr=0.5,conversion='dB-lin',skip=10):
+    power = power[skip:]
+    freq = freq[skip:]
     if conversion == 'dB-lin':
-        print('conversion is:',conversion)
         power = (10**(power/20))  # dB(W) to voltage ratio
     # X is the frequency, Y the is the resonance.
+    #power = np.abs(power)
+
     pos_max = np.argmax(power)
     par = np.polyfit(np.arange(5),power[pos_max-2:pos_max+3],deg=2)
     x_max = -par[1]/(2*par[0])
     y_max = np.poly1d(par)(x_max)
     pos_thr =np.where(power>=y_max*thr)[0][[0,-1]]
-
+    
     m, q = np.polyfit([pos_thr[0]-1,pos_thr[0]],power[pos_thr[0]-1:pos_thr[0]+1],deg=1)
     x1 = (y_max*thr-q)/m
 
@@ -66,7 +76,10 @@ def Q_raw(freq,power,thr=0.5,conversion='dB-lin'):
     return Q, f0, y_max
 
 
-def fit_resonance(freq,power,auto=True,conversion='dB-lin',thr=0.5,n=10,verbose=True):
+def fit_resonance_old(freq,power,auto=True,conversion='dB-lin',thr=0.5,n=10,verbose=True):
+    '''
+    old, fit the resonance with an asymmetric cauchy
+    '''
     if conversion == 'dB-lin':
         print('conversion is:',conversion)
         power = (10**(power/20))  # dB(W) to voltage ratio
@@ -132,3 +145,222 @@ def fit_resonance(freq,power,auto=True,conversion='dB-lin',thr=0.5,n=10,verbose=
         return
     else:
         return popt, perr
+        
+        
+def fit_minuit_bvd(x,L,fc,Y):
+    
+    omega = np.pi*2*x #x sono le frequenze
+
+    LC = 1./(fc*np.pi*2)**2
+    C = LC/L
+
+    R = 1./interpolate.interp1d(x,np.real(Y))(fc)
+
+    C0 = (interpolate.interp1d(x,np.imag(Y))(fc))*(LC**0.5)
+    
+    Yb = (1j*omega*C0+(1j*omega*L-1j/(omega*C)+R)**(-1))
+    return np.abs(Yb)        
+        
+
+def set_parameter(minuit_obj=None,name=None,dictionary={}):
+
+    dic={"p0":None,"pmin":None, "pmax":None,"step":None,"fixed":False}
+    for key in dic.keys():
+        if key in dictionary.keys():
+            dic[key] = dictionary[key] 
+    
+    minuit_obj.values[name] = dic["p0"]
+    minuit_obj.limits[name]=(dic["pmin"],dic["pmax"])
+    if dic["step"] is not None:
+        minuit_obj.errors[name]=dic["step"]
+    minuit_obj.fixed[name]=dic["fixed"]
+    return 
+    
+            
+        
+def fit_resonance_bvd(freq,power,phase,conversion='dB-lin',skip=10,dicL = {"p0":100,"pmin":0},dicFc = None, npt_std=30):
+    '''
+    resonance fit assuming BVD circuit model
+    '''
+    if conversion == 'dB-lin':
+        power = (10**(power/20))  # dB(W) to voltage ratio
+    if conversion == 'dBm-W':
+        power = (10**(power/10))  # dB(W) to voltage ratio
+    
+    S = power[skip:]
+    freq = freq[skip:]
+    phase = phase[skip:]
+    
+    phase = np.unwrap(phase)
+    phase = phase-np.max(phase)+np.pi/2
+    
+    real = np.sqrt((S**2)/(1+np.tan(phase)**2))  
+    imag = np.tan(phase)*real
+    
+    Z = 2*50*(real/(S**2)-1j*imag/(S**2) -1)      #impedance
+    Y = 1./Z                                      #admittance
+
+    unc_Y = np.min([np.std(Y[:npt_std]), np.std(Y[-npt_std:])])
+
+    fitfunc = lambda x,L,fc : fit_minuit_bvd(x,L,fc,Y)
+    c = cost.LeastSquares(freq, np.abs(Y), unc_Y, fitfunc,verbose=0)
+
+    m1 = Minuit(c,L=0,fc=0)
+
+    L0 = 100
+    fc0 = freq[np.argmax(np.real(Y))]
+
+    set_parameter(m1,'L',dicL)
+    if dicFc is None:
+        set_parameter(m1,'fc',{"p0":fc0,"pmin":fc0-20,"pmax":fc0+20})
+    else:
+        set_parameter(m1,'fc',dicFc)
+    m1.migrad()
+    
+    fc = m1.params["fc"].value
+    L = m1.params["L"].value
+    LC = 1./(fc*np.pi*2)**2
+    C = LC/L
+    R = 1./interpolate.interp1d(freq,np.real(Y))(fc)
+    C0 = (interpolate.interp1d(freq,np.imag(Y))(fc))*(LC**0.5)
+    Q0 = 1/R*((L/C)**0.5)
+    return m1, R,L,C,C0,Q0
+    
+    
+def fit_minuit_gregory(x,rSd,iSd,d,delta, Ql, fl,phi,A):
+    Sd = (rSd + 1j*iSd)
+    t = 2*(x-fl)/fl
+    K = np.exp(-2j*delta)/(1+1j*Ql*t)
+    # print('fl[MHz]: ', fl/1e6, ' d: ', d)
+    return A*np.exp(-1j*phi)*(Sd +d*K)
+    
+    
+
+def circlefit(x,y,xc,yc):
+    def calc_R(xc, yc):
+        """ calculate the distance of each 2D points from the center (xc, yc) """
+        return ((x-xc)**2 + (y-yc)**2)**0.5
+
+    def f_2(c):
+        """ calculate the algebraic distance between the data points and the mean circle centered at c=(xc, yc) """
+        Ri = calc_R(*c)
+        return Ri - np.mean(Ri)
+
+    center_estimate = xc, yc
+    center_2, ier = optimize.leastsq(f_2, center_estimate)
+
+    xc_2, yc_2 = center_2
+    Ri_2       = calc_R(*center_2)
+    R_2        = Ri_2.mean()
+    residu_2   = sum((Ri_2 - R_2)**2)
+    return xc_2,yc_2,R_2
+    
+class MinimizeFunction:
+    def __init__(self,model, real, imag, freq, unc_real, unc_imag):
+        self.fc = model
+        self.real = real
+        self.imag = imag
+        self.freq = freq
+        self.unc_real = unc_real
+        self.unc_imag = unc_imag
+        self.func_code = iminuit.util.make_func_code(describe(self.fc)[1:])
+        return
+        
+class MinFunc(MinimizeFunction):
+    
+    def __init__(self,model, real , imag,freq, unc_real, unc_imag):
+        MinimizeFunction.__init__(self,model, real, imag,freq, unc_real, unc_imag)
+        return
+    
+    def __call__(self,*par):
+        out = (self.real-np.real(self.fc(self.freq,*par)))**2/self.unc_real**2 + (self.imag-np.imag(self.fc(self.freq,*par)))**2/self.unc_imag**2
+        
+        return np.sum(out)
+    
+
+def fit_resonance_circle(reso21=None,reso22=None,reso11=None,conversion='dB-lin',skip=10, npt_std=30,
+                         dicQl = {"p0":1e5,"pmin":1e2,"pmax":1e9},dicA = {"p0":1,"pmin":0},dicPhi = {"p0":0,"pmin":-np.pi,"pmax":np.pi},
+                         dicFl = None,wm=0.1,span_peak=100):
+                         
+                         
+    '''
+    resonance fit with model from Gregory's manual
+    '''
+    if conversion == 'dB-lin':
+        power = (10**(reso21["power"]/20))  # dB(W) to voltage ratio
+    if conversion == 'dBm-W':
+        power = (10**(reso21["power"]/10))  # dB(W) to voltage ratio
+    
+    S = power[skip:]
+    freq = reso21["freq"][skip:]
+    phase = reso21["phase"][skip:]
+    
+    phase = np.unwrap(phase)
+    phase = phase-np.max(phase)+np.pi/2
+
+
+    real = np.sqrt((S**2)/(1+np.tan(phase)**2))  
+    imag = np.tan(phase)*real
+
+    unc_r = np.min([np.std(real[:npt_std]), np.std(real[-npt_std:])])
+    unc_i = np.min([np.std(imag[:npt_std]), np.std(imag[-npt_std:])])
+    
+    if (np.argmax(real)-span_peak//2) < 0:
+        span_peak = 2*np.argmax(real)
+    if (np.argmax(real)+span_peak//2) > len(real):
+        span_peak = (len(real)-np.argmax(real))*2
+    
+    unc_real = np.ones(len(real))
+    unc_real[np.argmax(real)-span_peak//2:np.argmax(real)+span_peak//2] = np.append(np.linspace(wm,1,span_peak//2)[::-1],np.linspace(wm,1,span_peak//2))
+    unc_real = unc_real*unc_r
+ 
+    if (np.argmax(imag)-span_peak//2) < 0:
+        span_peak = 2*np.argmax(real)
+    if (np.argmax(imag)+span_peak//2) > len(imag):
+        span_peak = (len(imag)-np.argmax(imag))*2
+           
+    unc_imag = np.ones(len(imag))
+    unc_imag[np.argmax(imag)-span_peak//2:np.argmax(imag)+span_peak//2] = np.append(np.linspace(wm,1,span_peak//2)[::-1],np.linspace(wm,1,span_peak//2))
+    unc_imag = unc_imag*unc_i      
+    
+
+    c = MinFunc(fit_minuit_gregory, real, imag, freq, unc_real, unc_imag)
+
+    m1 = Minuit(c,rSd=(real[0] + real[-1])/2,iSd=(imag[0] + imag[-1])/2,d=0,delta=0,Ql=5e5,fl=freq[np.argmax(S)],phi=0,A=1)
+
+    fmax = freq[np.argmax(S)]
+    if dicFl is None:
+        dicFl = {"p0":fmax, "pmin":fmax-40, "pmax":fmax+40}
+    set_parameter(m1,'Ql',dicQl)
+    set_parameter(m1,'fl',dicFl)
+    set_parameter(m1,'d',{"p0":np.abs(np.max(real)-np.min(real)),"pmin":0})
+    set_parameter(m1,'A',dicA)
+    set_parameter(m1,'phi',dicPhi)
+    set_parameter(m1,'delta',{"p0": 0.12, "pmin": -np.pi, "pmax": np.pi})
+
+    m1.migrad()
+
+    obj = [reso22,reso11]
+    diameters = []
+    for i in range(2):
+        if obj[i] is not None:
+            S = (10**(obj[i]["power"]/20))[skip:]
+            freq = obj[i]["freq"][skip:]
+            phase = obj[i]["phase"][skip:]
+            phase = phase-np.max(phase) + np.pi/2
+            phase = np.unwrap(phase)
+
+            real = np.sqrt((S**2)/(1+np.tan(phase)**2))  # +/-
+            imag = np.tan(phase)*real
+            xc, yc,radius =circlefit(real,imag,np.mean(real),np.mean(imag))
+            diameters.append(2*radius)
+        else:
+            diameters.append(0)
+        
+    beta1 = diameters[0]/(2-diameters[0]-diameters[1])
+    beta2 = diameters[1]/(2-diameters[0]-diameters[1])
+
+    Ql = m1.params["Ql"].value
+    Q0 = Ql*(1+beta1+ beta2)
+    
+    return m1, Ql, Q0, beta1, beta2
