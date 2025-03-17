@@ -29,7 +29,6 @@ setup( # Finally, pass this all along to distutils to do the heavy lifting.
     package_dir      = {'': 'src'},
     packages         = find_packages(where='src'),
     scripts          = find_scripts('scripts'),
-#    include_package_data=True,
     python_requires  = '>=3.6', 
     zip_safe         = False,
 )
