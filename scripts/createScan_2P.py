@@ -44,7 +44,8 @@ def main():
     parser.add_argument("-bn", "--baw_number"    , dest="baw"    , type=str , help="baw number or label"  , required = True) 
     parser.add_argument("-note", "--note"    , dest="note"    , type=str , help="additional note"  , default = '') 
     
-    parser.add_argument("-fit", "--fit", dest="fit", type=bool , help="do the fit "   , default = True)      
+    parser.add_argument("-fit", "--fit", dest="fit", type=bool , help="do the fit "   , default = True)  
+    parser.add_argument("-ver", "--verebose", dest="verbose", type=bool , help=" "   , default = False)          
 
     args = parser.parse_args()
 
@@ -102,7 +103,8 @@ def main():
                 writer.save_parameter(hdfpath+'/parameters','depth',depth)
                 writer.save_parameter(hdfpath+'/parameters','f0',f0)
             except Exception as e: 
-                print("Error in raw fit:",e)
+                if args.verbose == True:
+                    print("Error in raw fit:",e)
                 counter_wrong_raw += 1
                 
             try:
@@ -113,7 +115,8 @@ def main():
                 writer.save_parameter(hdfpath+'/parameters','C',C)
                 writer.save_parameter(hdfpath+'/parameters','C0',C0)                           
             except Exception as e: 
-                print("Error in bvd fit:",e)
+                if args.verbose == True:
+                    print("Error in bvd fit:",e)
                 counter_wrong_bvd += 1    
                 
             try:
@@ -125,7 +128,8 @@ def main():
                 writer.save_parameter(hdfpath+'/parameters','b1',b1)
                 writer.save_parameter(hdfpath+'/parameters','b2',b2)
             except Exception as e: 
-                print("Error in circle fit:",e)
+                if args.verbose == True:
+                    print("Error in circle fit:",e)
                 counter_wrong_circle += 1 
             '''
             try:
