@@ -53,10 +53,11 @@ def fit_func(x,norm,gamma,center,m,offset,asim):
 def Q_raw(freq,power,thr=0.5,conversion='dB-lin',skip=10):
     power = power[skip:]
     freq = freq[skip:]
+
     if conversion == 'dB-lin':
-        power = (10**(power/20))  # dB(W) to voltage ratio
-    # X is the frequency, Y the is the resonance.
-    #power = np.abs(power)
+        power = (10**(power/20))  # dB(W) to voltage ratio                                                                                                                                                   
+    if conversion == 'dBm-W':
+        power = (10**(power/10))  # dB(W) to voltage ratio                                                                                                                                                    
 
     pos_max = np.argmax(power)
     par = np.polyfit(np.arange(5),power[pos_max-2:pos_max+3],deg=2)

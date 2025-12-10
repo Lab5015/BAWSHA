@@ -235,7 +235,6 @@ class HP8753E():
 
         xx = np.linspace(1, self._params.get("npt"), int(self._params.get("npt")))
         xdata = self._params.get("fmin") + (xx - 1) * (self._params.get("fmax")-self._params.get("fmin")) / (self._params.get("npt") - 1)
-
         return xdata, yPow, yPhase, yRe, yIm
     
     def print_current_path(self):
@@ -319,11 +318,10 @@ class HP8753E():
 
     def find_peak(self, n_std=5,distance_f=500,rm_thr=600): #distance and rm_thr in Hz
         x, y, z, _, _ = self.get_data()
+
         Y = np.abs(-y+y[np.argmin([y[0],y[-1]])]  )
-        
         df = x[1]-x[0]
         distance_s = int(np.round(distance_f/df))
-
         peaks, _ = find_peaks(Y,height=None, distance=distance_s,width=2)
         
         #find the positions in the x vector without a peak (no_peaks).
@@ -331,11 +329,13 @@ class HP8753E():
         no_peaks = np.arange(len(Y))
         for pos in peaks:
             no_peaks = no_peaks[(no_peaks<(pos-int(rm_thr_s/2))) | (no_peaks>(pos+int(rm_thr_s/2))) ]
-
+        print(len(no_peaks)," ",len(peaks))
         #define a proper threshold
         thr1 = np.mean(Y[no_peaks])+n_std*np.std(Y[no_peaks])
+        print(np.mean(Y[no_peaks])," ",np.std(Y[no_peaks])," ",thr1);
 
         peaks, _ = find_peaks(Y, height=thr1,distance=distance_s,width=1)
+        print(peaks);
         return x[peaks], y[peaks]        
 
     def routine(self, f_start = None, f_stop=None, span_large=None, IFBW_large = None, power=None,
@@ -355,7 +355,7 @@ class HP8753E():
 
         count = 0;
         for i in centers:
-            self.start_single_measure(mode='S22',npt=npt,center=i,span=span_large,IFBW=IFBW_large,power=power)
+            self.start_single_measure(mode='S21',npt=npt,center=i,span=span_large,IFBW=IFBW_large,power=power)
             print(self.get_init_par())
             sweeping_time = self._params.get("sweep")
             #time.sleep(sweeping_time)
@@ -364,7 +364,7 @@ class HP8753E():
             if (len(freq) !=  0):
                 fmin = str(self._params["fmin"])
                 fmax = str(self._params["fmax"])
-                self.save_data_txt('Peak_S22'+'_'+fmin+'_'+fmax, savePlot=savePlot)
+                self.save_data_txt('Peak_S21'+'_'+fmin+'_'+fmax, savePlot=savePlot)
                 for f in freq:
                     count  = count + 1
                     new_c = f
@@ -386,4 +386,80 @@ class HP8753E():
                     self.save_data_txt('Zoomed_peak_S22_'+str(count), savePlot=savePlot)
                     print('######')
 
+        return
+
+
+    def routine_new(self, f_start = None, f_stop=None, span_values=None, ifbw_values=None, power=None, npt=None, thr_freq=1000, n_std=5, savePlot=False):
+
+        self.make_new_run()
+        
+        dic = self.get_init_par()
+        if npt is None:
+            npt = dic["npt"]
+        if power is None:
+            power = dic["power"]
+            
+        ## define centers of starting search regions
+        count = 0;
+        centers = np.arange(f_start+span_values[0]/2 ,f_stop-span_values[0]/2, span_values[0])
+        ## loop on the defined centers 
+        for ic, centre in enumerate(centers):            
+            ## loop over span values and ifbw part the last value
+            freq = np.array([]);
+            for ispan, span in enumerate(span_values[:-1]):
+                ## if frequencies and heights are alread non empty --> additional scans at reduced span and ifbw
+                if np.any(freq):                    
+                    print("Found some frequencies --> improved span")
+                    freq_tmp = np.array([]);
+                    for f in freq:
+                        ## setup measurement parameters
+                        self.start_single_measure(mode='S21',npt=npt,center=f,span=span,IFBW=ifbw_values[ispan],power=power)
+                        print(self.get_init_par())                
+                        sweeping_time = self._params.get("sweep")
+                        a, _ = self.find_peak(n_std=n_std,distance_f=thr_freq,rm_thr=2*ifbw_values[ispan])
+                        freq_tmp = np.append(freq_tmp,a);
+                    freq = freq_tmp;
+                    if np.any(freq):
+                        fmin = str(self._params["fmin"])
+                        fmax = str(self._params["fmax"])
+                        print("Improved frequencies found --> ",freq);
+                        self.save_data_txt('Peak_S21'+'_'+fmin+'_'+fmax, savePlot=savePlot)
+                    else:
+                        break;
+                else:
+                    ## setup measurement parameters
+                    self.start_single_measure(mode='S21',npt=npt,center=centre,span=span,IFBW=ifbw_values[ispan],power=power)
+                    print(self.get_init_par())          
+                    sweeping_time = self._params.get("sweep")
+                    freq, _ = self.find_peak(n_std=n_std,distance_f=thr_freq,rm_thr=2*ifbw_values[ispan])
+                    if np.any(freq):
+                        fmin = str(self._params["fmin"])
+                        fmax = str(self._params["fmax"])
+                        print("Frequencies found --> ",freq);
+                        self.save_data_txt('Peak_S21'+'_'+fmin+'_'+fmax, savePlot=savePlot)
+                    else:
+                        break;
+                   
+            ## if frequencies are found ... use last values of ifbw and span
+            print("Found frequncies --> ",freq," --> save data")
+            if  np.any(freq):
+                fmin = str(self._params["fmin"])
+                fmax = str(self._params["fmax"])
+                for f in freq:
+                    count  = count + 1
+                    print("### Peak found! Number: ", count)
+                    print('###### Zooming in S21')
+                    self.start_single_measure(mode='S21',npt=npt,center=f,span=span_values[-1],IFBW=ifbw_values[-1],power=power)
+                    print(self.get_init_par())
+                    self.save_data_txt('Zoomed_peak_S21_'+str(count), savePlot=savePlot)
+                    print('###### Zooming in S11')
+                    self.start_single_measure(mode='S11',npt=npt,center=f,span=span_values[-1],IFBW=ifbw_values[-1],power=power)
+                    print(self.get_init_par())
+                    self.save_data_txt('Zoomed_peak_S11_'+str(count), savePlot=savePlot)
+                    print('###### Zooming in S22')
+                    self.start_single_measure(mode='S22',npt=npt,center=f,span=span_values[-1],IFBW=ifbw_values[-1],power=power)
+                    print(self.get_init_par())
+                    self.save_data_txt('Zoomed_peak_S22_'+str(count), savePlot=savePlot)
+                    print('######')
+            
         return

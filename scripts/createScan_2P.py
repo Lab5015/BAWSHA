@@ -120,8 +120,10 @@ def main():
                 counter_wrong_bvd += 1    
                 
             try:
-                _, Ql, Q0, b1, b2 = utils.fit_resonance_circle(reader.get_resonance(name=res_name, label='S21'),reader.get_resonance(name=res_name, label='S22'),
-                                                         reader.get_resonance(name=res_name, label='S11'))
+                _, Ql, Q0, b1, b2 = utils.fit_resonance_circle(
+                    reader.get_resonance(name=res_name, label='S21'),
+                    reader.get_resonance(name=res_name, label='S22'),
+                    reader.get_resonance(name=res_name, label='S11'))
 
                 writer.save_parameter(hdfpath+'/parameters','Ql_c',Ql)
                 writer.save_parameter(hdfpath+'/parameters','Q0_c',Q0)

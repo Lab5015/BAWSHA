@@ -41,12 +41,13 @@ def progressBar(time_sleep=300):
 
 class Agilent4395A():
 
-    def __init__(self,name='GPIB0::16::INSTR'):
+    def __init__(self,name='GPIB0::17::INSTR'):
         resources = pyvisa.ResourceManager('@py')
         self._vna = resources.open_resource(name)
         self._sleep = 0.5       #sleep between commands
         self._path = None  #save path for data files
         self._params = {}
+        print("CIAONE")
         #self._params["nome elemento"] = oggetto
         return
 
