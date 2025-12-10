@@ -192,9 +192,6 @@ def fit_resonance_bvd(freq,power,phase,conversion='dB-lin',skip=10,dicL = {"p0":
     freq = freq[skip:]
     phase = phase[skip:]
     
-    phase = np.unwrap(phase)
-    phase = phase-np.max(phase)+np.pi/2
-    
     real = np.sqrt((S**2)/(1+np.tan(phase)**2))  
     imag = np.tan(phase)*real
     
@@ -296,10 +293,6 @@ def fit_resonance_circle(reso21=None,reso22=None,reso11=None,conversion='dB-lin'
     freq = reso21["freq"][skip:]
     phase = reso21["phase"][skip:]
     
-    phase = np.unwrap(phase)
-    phase = phase-np.max(phase)+np.pi/2
-
-
     real = np.sqrt((S**2)/(1+np.tan(phase)**2))  
     imag = np.tan(phase)*real
 
@@ -348,9 +341,6 @@ def fit_resonance_circle(reso21=None,reso22=None,reso11=None,conversion='dB-lin'
             S = (10**(obj[i]["power"]/20))[skip:]
             freq = obj[i]["freq"][skip:]
             phase = obj[i]["phase"][skip:]
-            phase = phase-np.max(phase) + np.pi/2
-            phase = np.unwrap(phase)
-
             real = np.sqrt((S**2)/(1+np.tan(phase)**2))  # +/-
             imag = np.tan(phase)*real
             xc, yc,radius =circlefit(real,imag,np.mean(real),np.mean(imag))

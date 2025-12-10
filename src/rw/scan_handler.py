@@ -210,6 +210,12 @@ class ScanReader:
             dic2 = self._convert_to_dict(f[self._dlabel][resonance_name]["data"+label])
             dic1.update(dic2)
             dic1['reso_name'] = resonance_name
+
+            ## fix the phase
+            if 'phase' in dic1.keys():
+                dic1['phase'] = np.unwrap(dic1['phase'])
+                dic1['phase'] = dic1['phase'] -np.max(dic1['phase'])+np.pi/2
+
         return dic1
 
     def get_resonance_name(self,freq=None,loc=None):
