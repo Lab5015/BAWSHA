@@ -48,6 +48,7 @@ This project is a colection of classes, modules and packages used to handle and 
     ├── requirements.txt               # Requirements file specifing the lists of packages to install
     ├── setup.py                       # script for install and update the package
     ├── .gitignore                     # Specifies intentionally untracked files to ignore
+    ├── Helmoltz                       # Directory for numerical solution of Helmoltz equation
     └── README.md                      # README file
     
  ASCII art tree structure taken from [here](https://codepen.io/patrickhlauke/pen/azbYWZ)
