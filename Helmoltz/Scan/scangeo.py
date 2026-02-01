@@ -6,7 +6,7 @@ from Utils import (
     step_profile, ell_function,
     radial_grid, laplacian_cylindrical,
     solve_radial_modes,
-    Confinement_ratio, Loss, HWHM
+    Confinement_ratio, Loss, HWHM, indexed_filename
 )
 
 # -------------------------
@@ -23,9 +23,8 @@ m = 0
 # -------------------------
 # Geometry scan
 # -------------------------
-
-Rins = (1 - np.array([1/7, 1/6, 1/5, 1/4, 1/3])) * Rout
-hs = np.array([1/7, 1/6, 1/5, 1/4, 1/3]) * L0
+Rins = (1 - np.array([1/8, 1/7, 1/6, 1/5, 1/4, 1/3])) * Rout
+hs = np.array([1/8, 1/7, 1/6, 1/5, 1/4, 1/3]) * L0
 
 Nr = 1000
 rho, drho = radial_grid(Nr)
@@ -48,20 +47,20 @@ for Rin in Rins:
         )
 
         rho_in = Rin / Rout
-        CR, Loss, FWHM = [], [], []
+        CRs, Losses, HWHMs = [], [], []
 
         for i in range(len(N_list)):
             psi0 = res["eigvecs"][i][:, 0]
-            CR.append(Confinement_ratio(psi0, rho, rho_in))
-            Loss.append(Loss(psi0, rho_in))
+            CRs.append(Confinement_ratio(psi0, rho, rho_in))
+            Losses.append(Loss(psi0, rho, rho_in))
             try:
-                FWHM.append(HWHM(psi0, rho, Rout))
+                HWHMs.append(HWHM(psi0, rho, Rout))
             except:
-                FWHM.append(np.nan)
+                HWHMs.append(np.nan)
 
-        res["CR"] = CR
-        res["Loss"] = Loss
-        res["FWHM"] = FWHM
+        res["CR"] = CRs
+        res["Loss"] = Losses
+        res["HWHM"] = HWHMs
         res["Rin"] = Rin
         res["h"] = h
 
@@ -70,6 +69,7 @@ for Rin in Rins:
 # -------------------------
 # Save HDF5
 # -------------------------
+filename = indexed_filename(f"geometry_scan_{L0}.h5")
 
 with h5py.File(f"geometry_scan_{L0}.h5", "w") as f:
     f.create_dataset("Rins", data=Rins)
@@ -80,7 +80,7 @@ with h5py.File(f"geometry_scan_{L0}.h5", "w") as f:
         grp.attrs["Rin"] = res["Rin"]
         grp.attrs["h"] = res["h"]
 
-        for key in ["N", "CR", "Loss", "FWHM"]:
+        for key in ["N", "CR", "Loss", "HWHM"]:
             grp.create_dataset(key, data=np.array(res[key]))
 
         grp.create_dataset("omegas", data=np.array(res["omegas"]))

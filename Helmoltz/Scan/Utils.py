@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 
@@ -178,14 +179,16 @@ def Confinement_ratio(psi, rho, rho_in):
     return I_in / I_tot
 
 
-def Loss(psi, rho):
+def Loss(psi, rho, rho_in):
     """
-    Estimate the leakage outside rho > rho_in.
+    Compute the leakage fraction outside rho > rho_in.
 
     Parameters
     ----------
     psi : ndarray
         Radial wavefunction.
+    rho : ndarray
+        Radial grid (dimensionless).
     rho_in : float
         Inner radius (dimensionless).
 
@@ -195,8 +198,13 @@ def Loss(psi, rho):
         Fraction of norm outside rho_in.
     """
     density = np.abs(psi)**2 * rho
+
     I_tot = np.trapezoid(density, rho)
-    I_out  = np.trapezoid(density[rho > 1], rho[rho > 1])
+    I_out = np.trapezoid(
+        density[rho > rho_in],
+        rho[rho > rho_in]
+    )
+
     return I_out / I_tot
 
 
@@ -297,3 +305,111 @@ def solve_radial_modes(
         results["omegas"].append(np.sqrt(eigvals[idx]))
 
     return results
+
+
+
+def plot_geometry_heatmap(
+    filename,
+    quantity="CR",
+    mode_index=0,
+    Rout=12.0,
+    L0=None,
+    cmap="viridis"
+):
+    """
+    Plot a heatmap of a given observable from a geometry scan.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the HDF5 file.
+    quantity : str
+        Observable to plot ("CR" or "Loss").
+    mode_index : int
+        Index of the longitudinal mode (same ordering as N_list).
+    Rout : float
+        Outer radius of the resonator.
+    L0 : float
+        Central height of the resonator (needed for h/L0).
+    cmap : str
+        Matplotlib colormap.
+
+    Returns
+    -------
+    fig, ax : matplotlib Figure and Axes
+    """
+    if L0 is None:
+        raise ValueError("L0 must be provided to compute h / L0")
+
+    with h5py.File(filename, "r") as f:
+        Rins = f["Rins"][:]
+        hs = f["hs"][:]
+
+        x_vals = Rins / Rout
+        y_vals = hs / L0
+
+        # meshgrid indexing: y rows, x columns
+        Z = np.full((len(y_vals), len(x_vals)), np.nan)
+
+        for i, Rin in enumerate(Rins):
+            for j, h in enumerate(hs):
+                gname = f"Rin_{Rin:.3f}_h_{h:.3f}"
+                if gname not in f:
+                    continue
+
+                data = f[gname][quantity][:]
+
+                if mode_index < len(data):
+                    Z[j, i] = data[mode_index]
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+
+    im = ax.imshow(
+        Z,
+        origin="lower",
+        aspect="auto",
+        extent=[
+            x_vals.min(), x_vals.max(),
+            y_vals.min(), y_vals.max()
+        ],
+        cmap=cmap
+    )
+
+    cbar = plt.colorbar(im, ax=ax)
+    cbar.set_label(quantity)
+
+    ax.set_xlabel(r"$R_{\mathrm{in}} / R_{\mathrm{out}}$")
+    ax.set_ylabel(r"$h / L_0$")
+    ax.set_title(f"{quantity} – N={mode_index+1}")
+
+    plt.tight_layout()
+    return fig, ax
+
+from pathlib import Path
+import h5py
+import numpy as np
+
+
+def indexed_filename(base_name):
+    """
+    Generate an indexed filename if the file already exists.
+
+    Example:
+        geometry_scan_9.h5
+        geometry_scan_9_1.h5
+        geometry_scan_9_2.h5
+    """
+    path = Path(base_name)
+
+    if not path.exists():
+        return path
+
+    stem = path.stem          # geometry_scan_9
+    suffix = path.suffix      # .h5
+
+    counter = 1
+    while True:
+        new_path = path.with_name(f"{stem}_{counter}{suffix}")
+        if not new_path.exists():
+            return new_path
+        counter += 1
