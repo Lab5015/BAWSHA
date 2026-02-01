@@ -5,8 +5,8 @@ This folder is dedicated to the numerical solution of the Helmoltz wave equation
     
     bawsha
     │  
-    ├── pngs                           # Usefull pngs with some results
-    ├── Compare_pngs                   # Usefull pngs resulting from comparison of different geometries 
+    ├── pngs                           # Useful pngs with some results
+    ├── Compare_pngs                   # Useful pngs resulting from comparison of different geometries 
     ├── notebooks                      # Directory for numerical solution with different geometries
     ├── hdf5                           # Directory for saving geometry scans
     ├── Scan                           # Solve numerical Helmoltz for different parameters, given a geometry
