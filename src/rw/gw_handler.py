@@ -5,6 +5,7 @@ from datetime import datetime
 import calendar
 import os
 import subprocess
+from scipy import interpolate
 
 
 def fix_path(path):
@@ -182,6 +183,8 @@ class GwWriter:
         return
         
 
+
+
 class GwReader:
     
     '''
@@ -190,8 +193,9 @@ class GwReader:
     '''
     def __init__(self, path_file):
         self._file = path_file
-        self._conversion = 3.05681705866949e-07 #conversion factor from ADC to V 
-
+        self._conversion = None #conversion factor from ADC to V 
+        self._cal_func = self._default_calibration_func()
+        
     def __convert_to_dict(self, group):
         dic = {}
 
@@ -205,7 +209,26 @@ class GwReader:
                 el = float(np.array(el).astype(float))
             dic[key] = el
         return dic   
-    
+
+    def _default_calibration_func(self):
+        f_lo = np.array([20e6, 15e6, 10e6, 5e6, 3e6, 1e6, 6e6, 7e6, 8e6, 9e6, 500e3, 100e3, 50e3, 2e6, 4e6, 20e3, 10e3])
+        conv = np.array([2.895750100627316e-07, 2.9052510475851067e-07, 2.9389089006815327e-07, 3.05916735582909e-07, 3.450600059350321e-07,
+                7.765321626679574e-07, 3.0038569523267874e-07, 2.9762583868481125e-07, 2.9580314497903743e-07, 2.948820275301861e-07,
+                1.5076134479119554e-06, 8.977466558937068e-06, 2.7183762232693003e-05, 4.296830800829002e-07, 3.1768959185359166e-07,
+                0.00020661157024793388, 0.0009345794392523364])
+
+        i_sort = np.argsort(f_lo)
+        f_lo = f_lo[i_sort]
+        conv = conv[i_sort]
+
+        from scipy import interpolate
+        cal_func = interpolate.interp1d(f_lo,conv,kind="linear",bounds_error=False,fill_value="extrapolate")
+        return cal_func
+
+    def set_cal_func(self,fun):
+        self._self._cal_func = fun
+        return
+        
     def _get_dataset(self,Tname=None,loc = 0,trace=True,idx = None,dtype=None):
         
         '''
@@ -225,6 +248,9 @@ class GwReader:
         dic : dictionary
             Dictionary with all information for the selected dataset.
         '''
+
+
+        
         if (idx != None):
             if (len(idx) == 1) & (idx[0] == 0):
                 idx = None
@@ -246,8 +272,14 @@ class GwReader:
                 else:
                     i = np.array(f["tones"][Tname][str(loc)]["data/i"])
                     q = np.array(f["tones"][Tname][str(loc)]["data/q"])
-                dic["i"] = (i*self._conversion).astype(dtype)
-                dic["q"] = (q*self._conversion).astype(dtype)
+                
+                if self._conversion is not None:
+                    conversion = self._conversion
+                else:
+                    conversion = self._cal_func(dic["LO_frequency"])
+                
+                dic["i"] = (i*conversion).astype(dtype)
+                dic["q"] = (q*conversion).astype(dtype)
 
         return dic
 
