@@ -26,16 +26,18 @@ class GwWriter:
     
     def __init__(self, output_path=None,name=None,fname=None):
         '''
-        Initialize the writer
-        
+        Initialize the writer and select the target `.gw` file.
+
         Parameters
         ----------
         output_path : string
-            path where the .gw file will be saved. Default = None
+            Directory where the `.gw` file will be saved. Default = None.
         name : string
-            name of the .gw file. Default = None
+            Base filename (without extension). The writer will save to
+            `output_path + name + ".gw"`. Default = None.
         fname : string
-            if name is not None, the file is saved directly using this name (w/o the .gw). Default = None
+            Full filename (including path). If provided, it overrides
+            `output_path` and `name`. Default = None.
         '''
 
         if output_path is not None:
@@ -48,7 +50,8 @@ class GwWriter:
 
     def __check_exist(self,path=None,group_name = None):
         '''
-        check whether a certain label (group_name) exist given a certain path inside the hdf5.
+      
+        Check whether a group/dataset name exists at a given HDF5 path.
         '''
 
         with h5py.File(self._file,'r') as f:
@@ -64,7 +67,14 @@ class GwWriter:
     def set_general_info(self, dictionary=None):
         
         '''
-        Write the header of the .gw file. The header is a python dictionary
+        Write or update file-level metadata (header) under `/info`.
+
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary of key/value pairs to store as datasets under `/info`.
+            Existing keys are overwritten. Default = None.
+
         '''
                 
         with h5py.File(self._file,'a') as f:
@@ -82,18 +92,35 @@ class GwWriter:
     def write_data(self, resonance_label=None, dictionary=None, dataset=None,compression_default=None):   
         
         '''
-        Write the dataset in the .gw file
-        
+        Write one acquisition dataset (I/Q + metadata) for a resonance.
+
+        Data are written under:
+        `/tones/<resonance_label>/<dataset_index>/data` for trace-like fields and
+        `/tones/<resonance_label>/<dataset_index>/info` for remaining metadata.
+
         Parameters
         ----------
         resonance_label : string
-            Resonance name (e.g. 3A, 3B...). Default = None
+            Resonance name (e.g. 3A, 3B...). Default = None.
         dictionary : dict
-            the dictionary to write. It must have "i" and "q" keys. Default = None
+            Acquisition dictionary to write. Must contain at least:
+            - "i" : ndarray
+                In-phase (I) lock-in samples.
+            - "q" : ndarray
+                Quadrature (Q) lock-in samples.
+            - "t0" : scalar or array-like
+                Acquisition start time or timestamp reference.
+            - "counter" : scalar or array-like
+                Acquisition counter / index.
+            Any additional keys are stored under the dataset `/info` group.
+            Default = None.
         dataset : int
-            group index where the dictionary is written. If None, the last
-            dataset present in the HDF5 file +1 is used. If the dataset already
-            exists, the existing data are overwritten. Default is None.
+            Dataset index to use under the resonance group. If None, the next
+            available index is chosen (max existing + 1). If the index already
+            exists, its content is overwritten. Default = None.
+        compression_default : string
+            HDF5 compression filter name (e.g. "gzip") to apply to non-1D numpy
+            arrays. If None, no compression is applied. Default = None.
         '''
 
         big_group = "tones"       
@@ -148,6 +175,23 @@ class GwWriter:
         return
 
     def merge_and_compress(self,compression="gzip"):
+    
+        '''
+        Repack the file by rewriting tone datasets with compression.
+
+        This method:
+        1) Creates a temporary backup copy of the current `.gw` file.
+        2) Reads each resonance dataset using `GwReader`.
+        3) Deletes existing resonance groups under `/tones`.
+        4) Rewrites all datasets using `write_data`, applying the chosen compression.
+        5) Removes the backup file.
+
+        Parameters
+        ----------
+        compression : string
+            Compression filter to use when rewriting (commonly "gzip").
+            Default = "gzip".
+        '''
         
         file1 = os.path.abspath(self._file)
         file2 = file1+"_bkup"
@@ -166,6 +210,22 @@ class GwWriter:
 
             
     def __save_parameter(self,group,variable_name,value,compression_default=None):
+        '''
+        Create or overwrite a dataset in an HDF5 group.
+
+        Parameters
+        ----------
+        group : h5py.Group
+            Open HDF5 group where the dataset will be created.
+        variable_name : string
+            Dataset name to create/overwrite.
+        value : any
+            Value to store. Scalars and numpy arrays are supported.
+        compression_default : string
+            Compression filter name to apply when `value` is a numpy array with
+            dimension != 1. Default = None.
+        '''
+
         compression = None
         if type(value) == np.ndarray:
             if len(value.shape) != 1:
@@ -178,6 +238,19 @@ class GwWriter:
         return
 
     def __delete_parameter(self,path,name):
+        
+        '''
+        Delete a group or dataset from the HDF5 file.
+
+        Parameters
+        ----------
+        path : string
+            Parent path inside the HDF5 file.
+        name : string
+            Name of the child object (group or dataset) to delete.
+        '''        
+        
+        
         with h5py.File(self._file,  "a") as f:
             del f[path+'/'+name]
         return
@@ -188,15 +261,32 @@ class GwWriter:
 class GwReader:
     
     '''
-    Simple reader for the .lazy file (hdf5).
+    Simple reader for the `.gw` file (HDF5).
+
+    This class loads lock-in acquisition data written by `GwWriter`, including
+    I/Q traces and associated metadata, and supports time-window selection and
+    ADC-to-voltage conversion.
     
     '''
     def __init__(self, path_file):
+        '''
+        Initialize the reader.
+
+        Parameters
+        ----------
+        path_file : string
+            Path to the `.gw` HDF5 file to read.
+        
+        '''
         self._file = path_file
         self._conversion = None #conversion factor from ADC to V 
         self._cal_func = self._default_calibration_func()
         
     def __convert_to_dict(self, group):
+        '''
+        Convert an HDF5 group into a plain Python dictionary.
+        
+        '''
         dic = {}
 
         for key in group.keys():
@@ -211,11 +301,24 @@ class GwReader:
         return dic   
 
     def _default_calibration_func(self):
-        f_lo = np.array([20e6, 15e6, 10e6, 5e6, 3e6, 1e6, 6e6, 7e6, 8e6, 9e6, 500e3, 100e3, 50e3, 2e6, 4e6, 20e3, 10e3])
-        conv = np.array([2.895750100627316e-07, 2.9052510475851067e-07, 2.9389089006815327e-07, 3.05916735582909e-07, 3.450600059350321e-07,
-                7.765321626679574e-07, 3.0038569523267874e-07, 2.9762583868481125e-07, 2.9580314497903743e-07, 2.948820275301861e-07,
-                1.5076134479119554e-06, 8.977466558937068e-06, 2.7183762232693003e-05, 4.296830800829002e-07, 3.1768959185359166e-07,
-                0.00020661157024793388, 0.0009345794392523364])
+        '''
+        Build the default ADC-to-voltage calibration function.
+
+        The default calibration is defined by tabulated conversion factors vs
+        LO frequency and returned as a 1D interpolating function.
+
+        Return
+        ----------
+        cal_func : callable
+            Function `cal_func(f_lo)` returning the conversion factor(s) from
+            ADC units to volts for a given LO frequency (Hz).        
+        
+        '''
+        
+        f_lo = np.array([20e6, 15e6,10e6,6e6,4e6,2e6,1e6,800e3,500e3,100e3,50e3])
+        conv = np.array([1.1757743453876332e-06,1.1809442830487258e-06,1.1943007965986313e-06,1.2230770171597705e-06,
+                1.2972580289461507e-06, 1.7778936701059031e-06,3.210822612753387e-06,3.971248163297724e-06,
+                 6.316853364777225e-06,3.7807183364839316e-05,0.00011070110701107011])
 
         i_sort = np.argsort(f_lo)
         f_lo = f_lo[i_sort]
@@ -226,27 +329,51 @@ class GwReader:
         return cal_func
 
     def set_cal_func(self,fun):
+        '''
+        Set a custom ADC-to-voltage calibration function.
+
+        Parameters
+        ----------
+        fun : callable
+            Function `fun(f_lo)` that returns a conversion factor (scalar or
+            array) from ADC units to volts for the provided LO frequency (Hz).
+        '''
+        
         self._self._cal_func = fun
         return
         
     def _get_dataset(self,Tname=None,loc = 0,trace=True,idx = None,dtype=None):
-        
         '''
-        Get the dataset corresponding to a given resonance and position in the .gw file.  
-        
+        Get one dataset for a given resonance and dataset index.
+
         Parameters
         ----------
         Tname : string
-            Resonance name (e.g. 3A, 3B...). Default = None
+            Resonance name (e.g. 3A, 3B...). Default = None.
         loc : int
-            Index of the selected dataset. Default = 0
+            Index of the selected dataset group under the resonance label.
+            Default = 0.
         trace : bool
-            If true, also return the "i" and "q" data. Default = True.
+            If True, include the I/Q traces ("i" and "q") in the output.
+            If False, only metadata and timestamps/counters are returned.
+            Default = True.
+        idx : array-like or None
+            Optional selection of internal indices within the dataset group.
+            Use this to select specific acquisitions stored inside the same
+            `loc` group. If None, returns all acquisitions in that group.
+            Default = None.
+        dtype : numpy dtype or None
+            dtype to cast the returned i/q arrays after conversion.
+            If None, keep numpy default type. Default = None.
 
         Return
         ----------
-        dic : dictionary
-            Dictionary with all information for the selected dataset.
+        dic : dict
+            Dictionary containing dataset metadata plus:
+            - "t0" : ndarray or scalar
+            - "counter" : ndarray or scalar
+            - "i" : ndarray (only if trace=True)
+            - "q" : ndarray (only if trace=True)
         '''
 
 
@@ -285,52 +412,103 @@ class GwReader:
 
 
     def _string_to_epoch(self,string):
+        '''
+        Convert a UTC timestamp string to epoch seconds.
+        
+        Parameters
+        ----------
+        string : string
+            Timestamp in the format "YYYY-MM-DD HH:MM:SS".
+
+        Return
+        ----------
+        epoch : int
+            Epoch timestamp (seconds since 1970-01-01 00:00:00 UTC).
+        '''
         
         dt = datetime.strptime(string, "%Y-%m-%d %H:%M:%S")
         res = calendar.timegm(dt.utctimetuple())
         return res
 
     def _epoch_to_string(self,epoch):
+        '''
+        Convert epoch seconds to a local-time timestamp string.
+
+        Parameters
+        ----------
+        epoch : float or int
+            Epoch timestamp (seconds since 1970-01-01 00:00:00 UTC).
+
+        Return
+        ----------
+        string : string
+            Timestamp in the format "YYYY-MM-DD HH:MM:SS".
+        '''
+        
         return strftime('%Y-%m-%d %H:%M:%S', localtime(epoch))
 
     def set_conversion(self,conv):
+        '''
+        Set a constant conversion factor from ADC units to volts.
+
+        Parameters
+        ----------
+        conv : float
+            Multiplicative factor applied to i/q arrays to convert from ADC
+            units to volts.
+        '''
+        
         self._conversion = conv
         
     def get_tones_labels(self):
         '''
-        Return the labels of the tones in the .gw file
+        Return the resonance labels stored in the `.gw` file.
     
         '''
         with h5py.File(self._file,'r') as f: #
             return list(f["tones"].keys())
 
     def get_tones_loc(self,Tname):
+        '''
+        Return the dataset indices available for a given resonance label.
+        
+        '''
         with h5py.File(self._file,'r') as f: #
             return list(f["tones"+"/"+Tname].keys())    
 
     def get_times(self,Tname=None,epoch=True,return_tstamps = False):
         
         '''
-        Return the first and last timestamps of the dataset.  
-        
+        Return the first and last timestamps for a resonance, optionally with all timestamps.
+
         Parameters
         ----------
         Tname : string
-            Resonance name (e.g. 3A, 3B...). Default = None
+            Resonance name (e.g. 3A, 3B...). If None, the first available tone
+            label in the file is used. Default = None.
         epoch : bool
-            If True, timestamps are in epoch. If False, return a string in the 
-            format YYYY-MM-DD HH:MM:SS. Default = True
+            If True, return timestamps as epoch seconds.
+            If False, return timestamps as strings "YYYY-MM-DD HH:MM:SS".
+            Default = True.
         return_tstamps : bool
-            If true, also return the array of timestamps in epoch. Default = False.
+            If True, also return the full timestamp array and index mapping
+            arrays. Default = False.
 
         Return
         ----------
         tstart : float or string
-            The first timestamp
+            First timestamp (min).
         tstop : float or string
-            The last timestamp
-        tstamp : np.array
-            Array of timestamps in the same order as the datasets in the .gw file.
+            Last timestamp (max).
+        tstamps : np.array
+            Array of timestamps in epoch seconds, in the same order as stored
+            across dataset groups. Returned only if `return_tstamps=True`.
+        positions : np.array
+            Dataset-group index (`loc`) for each element in `tstamps`.
+            Returned only if `return_tstamps=True`.
+        internal_positions : np.array
+            Internal index within each `loc` group for each element in `tstamps`.
+            Returned only if `return_tstamps=True`.
         '''
 
         if Tname == None:
@@ -366,8 +544,21 @@ class GwReader:
 
     def _check_consistency(self,d1,d2,keys):
         '''
-        Return true if the dictionaries have the same entries.
-        The keys in keys are not considered.
+        Compare two dictionaries while ignoring selected keys.
+
+        Parameters
+        ----------
+        d1 : dict
+            First dictionary.
+        d2 : dict
+            Second dictionary.
+        keys : list
+            Keys to ignore during the comparison.
+
+        Return
+        ----------
+        same : bool
+            True if `d1` and `d2` match after removing `keys`, otherwise False.
     
         '''
         d1_r = {x: d1[x] for x in d1 if x not in keys}
@@ -378,27 +569,41 @@ class GwReader:
     def get_reso_data(self,Tname,tstart = -np.inf, tstop = np.inf,dtype=None):
         
         '''
-        Return the dataset for the selected resonance within a specified time window. 
-        
+        Return resonance datasets within a specified time window.
+
+        This method selects acquisitions whose timestamps `t0` fall within
+        `[tstart, tstop]`, loads the corresponding I/Q traces and metadata, and
+        merges acquisitions into as few output dictionaries as possible by
+        grouping entries with identical metadata (excluding i/q/t0/counter).
+
         Parameters
         ----------
         Tname : string
-            Resonance name (e.g. 3A, 3B...). Default = None
+            Resonance name (e.g. 3A, 3B...).
         tstart : float or string
-            Start time. If a float, it is interpreted as an epoch timestamp.
-            If a string, it must be in the format "YYYY-MM-DD HH:MM:SS".
-            If -np.inf, the first available timestamp is used.
-            Default is -np.inf.
+            Start time (inclusive). If float, interpreted as epoch seconds.
+            If string, must be "YYYY-MM-DD HH:MM:SS".
+            If -np.inf, the earliest available timestamp is used.
+            Default = -np.inf.
         tstop : float or string
-            Stop time. If a float, it is interpreted as an epoch timestamp.
-            If a string, it must be in the format "YYYY-MM-DD HH:MM:SS".
-            If np.inf, the first available timestamp is used.
-            Default is np.inf.
+            Stop time (inclusive). If float, interpreted as epoch seconds.
+            If string, must be "YYYY-MM-DD HH:MM:SS".
+            If np.inf, the latest available timestamp is used.
+            Default = np.inf.
+        dtype : numpy dtype or None
+            dtype to cast the returned i/q arrays after conversion.
+            If None, keep numpy default type. Default = None.
+            Default = None.
 
         Return
         ----------
-        dic : dictionary
-            Dictionary with all information for the selected dataset.
+        out : list of dict
+            List of dictionaries. Each dictionary contains metadata and arrays:
+            - "i" : ndarray, shape (N, nsamples) or (nsamples,) depending on storage
+            - "q" : ndarray, shape (N, nsamples) or (nsamples,) depending on storage
+            - "t0" : ndarray
+            - "counter" : ndarray
+            plus additional metadata keys from the dataset `/info`.
         '''
         
         with h5py.File(self._file,'r') as f:
