@@ -44,11 +44,11 @@ This project is a colection of classes, modules and packages used to handle and 
     ├── src                            # Project source code
     ├── scripts                        # Directory for scripts and executables 
     ├── test                           # Directory used to collect test code   
-    ├── notebooks                      # Directory for guides and test  
+    ├── notebooks                      # Directory useful(?) jupyter notebook  
     ├── requirements.txt               # Requirements file specifing the lists of packages to install
     ├── setup.py                       # script for install and update the package
     ├── .gitignore                     # Specifies intentionally untracked files to ignore
-    ├── Helmoltz                       # Directory for numerical solution of Helmoltz equation
+    ├── tutorials                      # Directory for various tutorials
     └── README.md                      # README file
     
  ASCII art tree structure taken from [here](https://codepen.io/patrickhlauke/pen/azbYWZ)
