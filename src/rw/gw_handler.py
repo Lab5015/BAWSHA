@@ -533,8 +533,8 @@ class GwReader:
             tstart = np.min(tstamps)
             tstop = np.max(tstamps)
         else:
-            tstart = strftime('%Y-%m-%d %H:%M:%S', localtime(np.min(tstamps)))
-            tstop = strftime('%Y-%m-%d %H:%M:%S', localtime(np.max(tstamps)))
+            tstart = self._epoch_to_string(np.min(tstamps)) 
+            tstop = self._epoch_to_string(np.max(tstamps)) 
         if return_tstamps == False:
             return tstart,tstop
         else:
@@ -614,9 +614,10 @@ class GwReader:
             #select the dataset:
             if type(tstart) == str:
                 tstart = self._string_to_epoch(tstart)
+                
             if type(tstop) == str:
                 tstop = self._string_to_epoch(tstop)
-                
+              
             _,_, tstamps, pos2, pos_internal =self.get_times(Tname=Tname,return_tstamps=True)
             ii = np.where((tstamps>=tstart)&(tstamps<=tstop))[0]
 
@@ -661,3 +662,40 @@ class GwReader:
 
         return out
 
+
+    def get_IQ(self,dic):
+        '''
+        Extract and reconstruct the full time axis together with the
+        I and Q components.    
+ 
+        Parameters
+        ----------
+        dic : dict 
+            the output of get_reso_data
+            
+        Returns
+        -------
+        t_long : ndarray
+            Reconstructed 1D time array (in epoch) corresponding to the flattened data.
+        I : ndarray
+            Flattened in-phase data.
+        Q : ndarray
+            Flattened quadrature data.         
+ 
+        '''
+        I = dic["i"][:,:].flatten("A")
+        Q = dic["q"][:,:].flatten("A")
+        tt = []
+        t = np.arange(0,dic["i"].shape[1])*(1/dic["fs"])
+        for i in range(len(dic["t0"])):
+            tt.append(t+dic["t0"][i])
+        t_long = np.array(tt).flatten("A")
+        return t_long, I, Q
+        
+        
+        
+        
+        
+        
+        
+        
