@@ -1,7 +1,7 @@
 import numpy as np
 import h5py
 from time import strftime, localtime, strptime
-from datetime import datetime
+from datetime import datetime, timezone
 import calendar
 import os
 import subprocess
@@ -414,39 +414,40 @@ class GwReader:
 
     def _string_to_epoch(self,string):
         '''
+    
         Convert a UTC timestamp string to epoch seconds.
-        
+    
         Parameters
         ----------
-        string : string
-            Timestamp in the format "YYYY-MM-DD HH:MM:SS".
+        string : str
+            Timestamp in the format "YYYY-MM-DD HH:MM:SS", interpreted as UTC.
 
-        Return
-        ----------
-        epoch : int
+        Returns
+        -------
+        int
             Epoch timestamp (seconds since 1970-01-01 00:00:00 UTC).
         '''
         
-        dt = datetime.strptime(string, "%Y-%m-%d %H:%M:%S")
-        res = calendar.timegm(dt.utctimetuple())
-        return res
+        
+        dt = datetime.strptime(string, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        return dt.timestamp()
 
     def _epoch_to_string(self,epoch):
         '''
-        Convert epoch seconds to a local-time timestamp string.
-
+        Convert epoch seconds to a UTC timestamp string.
+    
         Parameters
         ----------
-        epoch : float or int
+        epoch : int
             Epoch timestamp (seconds since 1970-01-01 00:00:00 UTC).
 
-        Return
-        ----------
-        string : string
-            Timestamp in the format "YYYY-MM-DD HH:MM:SS".
+        Returns
+        -------
+        str
+            Timestamp in the format "YYYY-MM-DD HH:MM:SS", expressed in UTC.
         '''
-        
-        return strftime('%Y-%m-%d %H:%M:%S', localtime(epoch))
+        dt = datetime.fromtimestamp(epoch, tz=timezone.utc)
+        return  dt.strftime("%Y-%m-%d %H:%M:%S")
 
     def set_conversion(self,conv):
         '''
