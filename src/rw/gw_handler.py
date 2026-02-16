@@ -315,10 +315,11 @@ class GwReader:
         
         '''
         
-        f_lo = np.array([20e6, 15e6,10e6,6e6,4e6,2e6,1e6,800e3,500e3,100e3,50e3])
-        conv = np.array([1.1757743453876332e-06,1.1809442830487258e-06,1.1943007965986313e-06,1.2230770171597705e-06,
-                1.2972580289461507e-06, 1.7778936701059031e-06,3.210822612753387e-06,3.971248163297724e-06,
-                 6.316853364777225e-06,3.7807183364839316e-05,0.00011070110701107011])
+        f_lo = np.array([   50000.,   100000.,   500000.,   800000.,  1000000.,  2000000.,
+                        4000000.,  6000000., 10000000., 15000000., 20000000.])
+        conv = np.array([1.11288475e-04, 3.78583059e-05, 6.31778694e-06, 3.97361609e-06,
+                        3.21185706e-06, 1.77819986e-06, 1.29734258e-06, 1.22319717e-06,
+                        1.19453950e-06, 1.18113775e-06, 1.17588244e-06])
 
         i_sort = np.argsort(f_lo)
         f_lo = f_lo[i_sort]
@@ -677,20 +678,38 @@ class GwReader:
         -------
         t_long : ndarray
             Reconstructed 1D time array (in epoch) corresponding to the flattened data.
-        I : ndarray
-            Flattened in-phase data.
-        Q : ndarray
-            Flattened quadrature data.         
+        z : ndarray
+            corrected I + 1jQ .     
  
         '''
+    def get_IQ(self,dic,skip=0,remove_dc=True,correct_circle=False):
+        
         I = dic["i"][:,:].flatten("A")
         Q = dic["q"][:,:].flatten("A")
+
+        I0 = np.mean(I[skip:]) if remove_dc else 0
+        Q0 = np.mean(Q[skip:]) if remove_dc else 0
+        I_cor = I-I0
+        Q_cor = Q-Q0
+
+        if correct_circle is True:
+            print("Qua")
+            cov = np.cov(I[skip:],Q[skip:])
+            
+            evals, evecs = np.linalg.eigh(cov)
+            # Build C^{-1/2} = V diag(1/sqrt(λ)) V^T
+            D_inv_sqrt = np.diag(1.0 / np.sqrt(evals))
+            W = evecs @ D_inv_sqrt @ evecs.T
+
+            I_cor, Q_cor = np.matmul(W,np.array([I_cor,Q_cor]))
+                    
+        z = I_cor + 1j*Q_cor
         tt = []
         t = np.arange(0,dic["i"].shape[1])*(1/dic["fs"])
         for i in range(len(dic["t0"])):
             tt.append(t+dic["t0"][i])
         t_long = np.array(tt).flatten("A")
-        return t_long, I, Q
+        return t_long, z
         
         
         
