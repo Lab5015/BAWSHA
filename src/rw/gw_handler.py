@@ -665,24 +665,6 @@ class GwReader:
         return out
 
 
-    def get_IQ(self,dic):
-        '''
-        Extract and reconstruct the full time axis together with the
-        I and Q components.    
- 
-        Parameters
-        ----------
-        dic : dict 
-            the output of get_reso_data
-            
-        Returns
-        -------
-        t_long : ndarray
-            Reconstructed 1D time array (in epoch) corresponding to the flattened data.
-        z : ndarray
-            corrected I + 1jQ .     
- 
-        '''
     def get_IQ(self,dic,skip=0,remove_dc=True,correct_circle=False):
         
         I = dic["i"][:,:].flatten("A")
@@ -694,7 +676,7 @@ class GwReader:
         Q_cor = Q-Q0
 
         if correct_circle is True:
-            print("Qua")
+            
             cov = np.cov(I[skip:],Q[skip:])
             
             evals, evecs = np.linalg.eigh(cov)
