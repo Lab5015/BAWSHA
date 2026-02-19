@@ -59,7 +59,7 @@ if the returned value is the chosen verson, the version is ok
     ├── setup.py                       # script for install and update the package
     ├── .gitignore                     # Specifies intentionally untracked files to ignore
     ├── tutorials                      # Directory for various tutorials
-    ├── rfsoc_control                  # Directory for firmware source code and for server implementation
+    ├── rfsoc_control                  # Directory for firmware for server source code
     └── README.md                      # README file
 
 ASCII art tree structure taken from [here](https://codepen.io/patrickhlauke/pen/azbYWZ)
