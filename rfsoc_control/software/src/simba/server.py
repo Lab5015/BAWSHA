@@ -296,6 +296,10 @@ def control_server():
                         write_lo_config(msg["config"])
                         conn.sendall(b'{"status":"ok"}')
 
+                    elif cmd == "remove_files" and server_state == STATE_IDLE:
+                        remove_all_files()
+                        conn.sendall(b'{"status":"ok"}')
+
                     else:
                         conn.sendall(
                             b'{"status":"error","msg":"invalid state or command"}'
