@@ -1,0 +1,21 @@
+[project]
+name = "simba"
+version = "0.1.0"
+description = "Server-Client for basic lockin management"
+authors = [
+    {name = "Rodolfo Carobene",email = "rodolfo.carobene@gmail.com"}
+]
+license = "Apache License 2.0"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy (>=1.26.0,<3.0.0)",
+    "h5py (>=3.13.0,<4.0.0)",
+    "pynq (>=3.0.1,<4.0.0)"
+]
+packages = [{ include = "simba", from = "src" }]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
