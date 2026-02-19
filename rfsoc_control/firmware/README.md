@@ -21,5 +21,4 @@ Firmware images, source code, and design resources for the **BAWSHA Lock-In** im
 ### Notes
 
 - Bitstreams in `firmware_imgs/` correspond to the latest successful build.
-- Testbenches support both functional validation and regression testing.
 - Schematics provide architectural reference and expected signal-processing behavior.
