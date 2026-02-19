@@ -1,0 +1,10 @@
+
+
+OPTION psf_version = 2.1;
+
+BEGIN DRIVER global_axi_control
+	OPTION supported_peripherals = (global_axi_control);
+	OPTION copyfiles = all;
+	OPTION VERSION = 1.0;
+	OPTION NAME = global_axi_control;
+END DRIVER
