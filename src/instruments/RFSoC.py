@@ -71,6 +71,10 @@ class LoRFSoC:
     def stop_acquisition(self):
         self.force_cmd({"cmd": "stop"})
         return
+    
+    def clear_files(self):
+        self.force_cmd({"cmd": "remove_files"})
+        return
 
     def send_config_file(self,input_dic):
         self.force_cmd({"cmd":"config_lo","config":input_dic},required="idle")
