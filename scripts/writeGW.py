@@ -178,13 +178,13 @@ def main():
             if obj is not None:
                 xilinx.send_config_file(input_dic)
                 
-            xilinx.force_cmd({"cmd": "remove_files"})
+            xilinx.clear_files()
             xilinx.start_acquisition()
             log("New acquisition started",level=2)
         elif args.type == 2:
             log("An existing acquisition is present, I will kill it.",level=1)
             xilinx.stop_acquisition()
-            xilinx.force_cmd({"cmd": "remove_files"})
+            xilinx.clear_files()
             return
             
         else:
