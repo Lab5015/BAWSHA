@@ -120,7 +120,7 @@ def main():
     parser.add_argument("-fc", "--fcenter"   , dest="fcenter"   , type=float , help="center frequency (Hz)", default = None, required = False) 
     parser.add_argument("-fm", "--fstart"   , dest="fstart"   , type=float , help="starting frequency (Hz)", default = None, required = False) 
     parser.add_argument("-fM", "--fstop"   , dest="fstop"   , type=float , help="stop frequency (Hz)", default = None, required = False) 
-    parser.add_argument("-fs", "--fspan"   , dest="fspan"   , type=float , help="Spacing between frequencies (Hz)", default = 60, required = False)     
+    parser.add_argument("-fs", "--fspan"   , dest="fspan"   , type=float , help="Spacing between frequencies (Hz)", default = 140, required = False)     
     parser.add_argument("-Nm", "--Nmodes"   , dest="Nmodes"   , type=int , help="Number of lock-in", default = 16, required = False)     
 
     args = parser.parse_args()    
@@ -178,11 +178,13 @@ def main():
             if obj is not None:
                 xilinx.send_config_file(input_dic)
                 
+            xilinx.force_cmd({"cmd": "remove_files"})
             xilinx.start_acquisition()
             log("New acquisition started",level=2)
         elif args.type == 2:
             log("An existing acquisition is present, I will kill it.",level=1)
             xilinx.stop_acquisition()
+            xilinx.force_cmd({"cmd": "remove_files"})
             return
             
         else:
