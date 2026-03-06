@@ -1,4 +1,6 @@
 import sys
+import re
+from Instruments import DPO3014
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
@@ -6,24 +8,50 @@ from scipy.optimize import curve_fit
 def fit(x, a, b):
     return a*x + b
 
-if len(sys.argv)<2:
-    raise SystemError("Insert data file path")
-
 #----------------------------------------------
 # LOAD DATA
 #----------------------------------------------
 
-data_path = sys.argv[1]
-raw_data = np.genfromtxt(data_path, delimiter=',', skip_header=21).T
-time = raw_data[0]
-CH1 = raw_data[1]
-CH2 = raw_data[2]
+CH = {
+    "CH1" : [],
+    "CH2" : []
+}
+
+mytek = DPO3014()
+mytek.HS = 0.004
+mytek.RL = 2e4
+mytek.AVG = 512
+
+for i in [1,2]:
+
+    mytek.set_source(i)
+    out = mytek.get_wf().split(",")
+    out = np.array(out)
+    out = out.astype('int')
+    data_str = mytek.query("WAVFrm?")
+    v_match = re.search(r"([\d.]+)mV/div", data_str)
+    v_per_div = float(v_match.group(1)) / 1000 if v_match else None
+
+    t_match = re.search(r"([\d.]+)ms/div", data_str)
+    t_per_div = float(t_match.group(1)) / 1000 if v_match else None
+
+    xzero = float(mytek.query("WFMInpre:XZERo?"))
+    xincr = float(mytek.query("WFMInpre:XINcr?"))
+
+    yzero = float(mytek.query("WFMInpre:YZERo?"))
+    ymult = float(mytek.query("WFMInpre:YMUlt?"))
+
+    time = np.array([xzero + xincr*(i-1) for i in range(int(mytek.RL/2))])
+    CH[f"CH{i}"] = [yzero + ymult*dp for dp in out]
+
+CH1 = np.array(CH["CH1"])
+CH2 = np.array(CH["CH2"])
 
 #----------------------------------------------
 # SELECT ONE MONITOR PERIOD
 #----------------------------------------------
 
-mask = (time > time[np.argmax(CH1)]) & (time < time[np.argmin(CH1)]) 
+mask = (time > time[np.argmin(CH1)]) & (time < time[np.argmax(CH1)]) 
 minimum = CH1[mask][np.argmin(CH2[mask])]
 maximum = CH1[mask][np.argmax(CH2[mask])]
 
@@ -50,7 +78,8 @@ if period_max < period_min:
 mask_flux = (CH1[mask] > period_min) & (CH1[mask] < period_max) 
 V = CH2[mask][mask_flux][::-1]
 F = np.linspace(0,2,len(CH1[mask][mask_flux])) 
-
+plt.plot(F,V)
+plt.show()
 #----------------------------------------------
 # LINEAR FIT RESULTS vs NUMBER OF POINTS
 #----------------------------------------------
