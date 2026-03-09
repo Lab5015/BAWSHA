@@ -28,10 +28,6 @@ class DPO3014():
     def set_average_mode(self):
         """Sets oscilloscope in average mode"""
         self.instr.write("ACQuire:MODe AVERage")
-        
-    def query_mode(self):
-        """Query oscilloscope mode"""
-        print(self.instr.query("ACQuire:MODe ?"))
 
     def set_source(self, ch):
         """Set the source to readout"""
@@ -60,12 +56,6 @@ class DPO3014():
         else:
             self._AVG = int(value)
             self.write("ACQuire:NUMAVg "+str(int(value)))
-
-    def query_AVG(self):
-       """Query AVG"""
-       if "AVErage" not in self.query_mode().strip():
-            raise SystemError("Oscilloscope is not in average mode!")
-       return self.instr.query("ACQuire:NUMAVg?")
     
     @property
     def SR(self):
@@ -77,10 +67,6 @@ class DPO3014():
         """Set Sampling rate to value"""
         self._SR = int(value)
         self.write("HORizontal:SAMPLERate "+str(int(value)))
-    
-    def query_SR(self):
-        """Query SR value"""
-        print( self.instr.query("HORizontal:SAMPLERate?"))
 
     @property
     def HS(self):
@@ -93,10 +79,6 @@ class DPO3014():
         self._HS = value
         self.write("HORizontal:SCAle "+str(value))
 
-    def query_HS(self):
-        """Query HS"""
-        print(self.instr.query("HORizontal:SCAle?"))
-
     @property
     def RL(self):
         """Define the REcord Lenght property"""
@@ -107,10 +89,6 @@ class DPO3014():
         """Set thye record lenght to value"""
         self._RL = int(value)
         self.write("HORizontal:RECOrdlength "+str(int(value)))
-
-    def query_RL(self):
-        """Query RL value"""
-        print(self.instr.query("HORizontal:RECOrdlength?"))
         
     def acquire(self):
         """
