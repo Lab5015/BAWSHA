@@ -11,33 +11,40 @@ def analyze_vphi(time, CH1, CH2, plot=True):
     # SELECT ONE MONITOR PERIOD
     #----------------------------------------------
 
-    mask = (time > time[np.argmax(CH1)]) & (time < time[np.argmin(CH1)]) 
-    minimum = CH1[mask][np.argmin(CH2[mask])]
-    maximum = CH1[mask][np.argmax(CH2[mask])]
+    if np.argmin(CH1) < np.argmax(CH1):
+        t1 = np.argmin(CH1)
+        t2 = np.argmax(CH1)
+        mask = (time > time[t1]) & (time < time[t2]) 
 
-    minimum2 = CH2[mask][np.argmin(CH2[mask])]
-    maximum2 = CH2[mask][np.argmax(CH2[mask])]
+    else: 
+        mask = (time > time[t2]) & (time < time[t1]) 
+    
 
     #----------------------------------------------
     # SELECT ONE VPHI PERIOD
     #----------------------------------------------
-
-    V_period_pts = np.abs(np.where(CH1[mask]==maximum)[0] +
-                          np.where(CH1[mask]==minimum)[0])[0]
-
-    period_min = CH1[mask][np.argmin(CH2[mask])-V_period_pts]
-    period_max = CH1[mask][np.argmin(CH2[mask])]
-
-    if period_max < period_min:
-        period_min, period_max = period_max, period_min
+    
+    CH1 = CH1[mask]
+    CH2 = CH2[mask]
+    
+    if np.argmin(CH2) < np.argmax(CH2):
+        V2 = np.argmax(CH2)
+        V1 = np.argmin(CH2)
+    else:
+        V2 = np.argmin(CH2)
+        V1 = np.argmax(CH2)
+    Vpp = min(V1,V2) + V2 - V1
 
     #----------------------------------------------
     # CONVERT VOLTS IN FLUX QUANTA
     #----------------------------------------------
 
-    mask_flux = (CH1[mask] > period_min) & (CH1[mask] < period_max) 
-    V = CH2[mask][mask_flux][::-1]
-    F = np.linspace(0,2,len(CH1[mask][mask_flux])) 
+    F00 = np.linspace(0,2,len(CH1))
+    F0 = F00[V1+int(1.5*Vpp):V1+int(3*Vpp)]
+    V0 = CH2[V1+int(1.5*Vpp):V1+int(3*Vpp)]
+
+    F = F0[np.argmin(V0):np.argmax(V0)]
+    V = V0[np.argmin(V0):np.argmax(V0)]
 
     #----------------------------------------------
     # LINEAR FIT RESULTS vs NUMBER OF POINTS
@@ -49,19 +56,21 @@ def analyze_vphi(time, CH1, CH2, plot=True):
 
     results = {"pts": [], "As": [], "Bs": [], "A_errs": [], "B_errs": []}
 
-    max_pts = 100
+    max_pts = len(V)-2
     for i in np.arange(1,max_pts,1):
+        try:
+            temp1 = F[V0_idx-i:V0_idx+i]
+            temp2 = V[V0_idx-i:V0_idx+i]
 
-        temp1 = F[V0_idx-i:V0_idx+i]
-        temp2 = V[V0_idx-i:V0_idx+i]
+            popt, pcov = curve_fit(fit, temp1, temp2)
 
-        popt, pcov = curve_fit(fit, temp1, temp2)
-
-        results["pts"].append(i)
-        results["As"].append(popt[0])
-        results["Bs"].append(popt[1])
-        results["A_errs"].append(np.sqrt(np.diag(pcov))[0])
-        results["B_errs"].append(np.sqrt(np.diag(pcov))[1])
+            results["pts"].append(i)
+            results["As"].append(popt[0])
+            results["Bs"].append(popt[1])
+            results["A_errs"].append(np.sqrt(np.diag(pcov))[0])
+            results["B_errs"].append(np.sqrt(np.diag(pcov))[1])
+        except:
+            break
 
     #----------------------------------------------
     # SELECT BEST NUM OF POINTS
@@ -88,13 +97,12 @@ def analyze_vphi(time, CH1, CH2, plot=True):
     best_B = results["Bs"][best_pts]
     best_A_err = results["A_errs"][best_pts]
     best_B_err = results["B_errs"][best_pts]
-
     if plot:
 
         x_plot = np.linspace(min(F[V0_idx-best_pts:V0_idx+best_pts]),
                              max(F[V0_idx-best_pts:V0_idx+best_pts]), 1000)
 
-        plt.scatter(F, V, marker='.', s=0.1, color='k')
+        plt.scatter(F, V, marker='.', s=1, color='k')
         plt.plot(x_plot, fit(x_plot, best_A, best_B), color='magenta')
 
         plt.ylabel('CH2 [V]')
