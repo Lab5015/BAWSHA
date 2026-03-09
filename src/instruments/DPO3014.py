@@ -110,40 +110,40 @@ class DPO3014():
 
     def query_RL(self):
         """Query RL value"""
-        print(self.instr.query("HORizontal:RECOrdlength"))
+        print(self.instr.query("HORizontal:RECOrdlength?"))
         
     def acquire(self):
         """
         Acquire data from both channels, one at a time
         """
-        CH = {}
+        readout = {
+                    "sources" : ["CH1","CH2"],
+                    "time": None,
+                    "CH1" : None,
+                    "CH2" : None
+                }
 
-        for ch in [1, 2]:
+        for source in readout["sources"]:
+            if (int(self.instr.query("ACQuire:STATe?").strip())==1):
+                self.instr.write("DATa:SOUrce "+source)
+                out = np.array(self.instr.query("CURVe?").split(","), dtype=int)
+                data_str = self.instr.query("WAVFrm?")
 
-            self.set_source(ch)
+                v_match = re.search(r"([\d.]+)mV/div", data_str)
+                v_per_div = float(v_match.group(1)) / 1000 if v_match else None
 
-            out = self.get_wf().split(",")
-            out = np.array(out).astype(int)
+                t_match = re.search(r"([\d.]+)ms/div", data_str)
+                t_per_div = float(t_match.group(1)) / 1000 if t_match else None
 
-            data_str = self.query("WAVFrm?")
+                xzero = float(self.query("WFMInpre:XZERo?"))
+                xincr = float(self.query("WFMInpre:XINcr?"))
 
-            v_match = re.search(r"([\d.]+)mV/div", data_str)
-            v_per_div = float(v_match.group(1)) / 1000 if v_match else None
+                yzero = float(self.query("WFMInpre:YZERo?"))
+                ymult = float(self.query("WFMInpre:YMUlt?"))
 
-            t_match = re.search(r"([\d.]+)ms/div", data_str)
-            t_per_div = float(t_match.group(1)) / 1000 if t_match else None
-
-            xzero = float(self.query("WFMInpre:XZERo?"))
-            xincr = float(self.query("WFMInpre:XINcr?"))
-
-            yzero = float(self.query("WFMInpre:YZERo?"))
-            ymult = float(self.query("WFMInpre:YMUlt?"))
-
-            # convert ADC counts → volts
-            CH[f"CH{ch}"] = np.array([yzero + ymult * dp for dp in out])
+                # convert ADC counts → volts
+                readout[source] = np.array([yzero + ymult * dp for dp in out])
+              
+                readout["time"] = np.array([xzero + xincr * i for i in range(len(out))])
             
-            time = np.array([xzero + xincr * i for i in range(len(out))])
-            CH1 = CH["CH1"]
-            CH2 = CH["CH2"]
-            
-        return time, CH1, CH2
+        return readout
