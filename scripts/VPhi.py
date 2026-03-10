@@ -47,18 +47,15 @@ class fitter:
         else:
             V2 = np.argmin(CH2)
             V1 = np.argmax(CH2)
-        Vpp = min(V1,V2) + V2 - V1
+        Vpp = 4*V2-V1
 
         #----------------------------------------------
         # CONVERT VOLTS IN FLUX QUANTA
         #----------------------------------------------
 
-        F00 = np.linspace(0,2,len(CH1))
-        F0 = F00[V1+int(1.5*Vpp):V1+int(3*Vpp)]
-        V0 = CH2[V1+int(1.5*Vpp):V1+int(3*Vpp)]
-
-        F = F0[np.argmin(V0):np.argmax(V0)]
-        V = V0[np.argmin(V0):np.argmax(V0)]
+        V = CH2[V1:V1+Vpp]
+        F = np.linspace(0,2,len(CH2[V1:V1+Vpp]))
+        
         #----------------------------------------------
         # LINEAR FIT RESULTS vs NUMBER OF POINTS
         #----------------------------------------------
@@ -70,8 +67,7 @@ class fitter:
         results = {"pts": [], "As": [], "Bs": [], "A_errs": [], "B_errs": []}
 
         max_pts = 100
-        for i in np.arange(10,max_pts,1):
-
+        for i in np.arange(1,max_pts,1):
             temp1 = F[V0_idx-i:V0_idx+i]
             temp2 = V[V0_idx-i:V0_idx+i]
 
@@ -86,7 +82,7 @@ class fitter:
         # SELECT BEST NUM OF POINTS
         #----------------------------------------------
 
-        th = 1e-5
+        th = 1e-6
         grad = np.gradient(results["As"], results["pts"])
         best_pts = None
         max_th = 1e-1
@@ -128,3 +124,4 @@ class fitter:
         with open(filename, "w") as f:
             json.dump(self.results, f, indent=4)
         print("File correctly created")
+            
