@@ -51,11 +51,8 @@ class DPO3014():
     @AVG.setter
     def AVG(self, value):
         """Set AVG attribute to value"""
-        if "AVErage" not in self.query_mode().strip():
-            raise SystemError("Oscilloscope is not in average mode!")
-        else:
-            self._AVG = int(value)
-            self.write("ACQuire:NUMAVg "+str(int(value)))
+        self._AVG = int(value)
+        self.write("ACQuire:NUMAVg "+str(int(value)))
     
     @property
     def SR(self):
@@ -88,9 +85,9 @@ class DPO3014():
     def RL(self, value):
         """Set thye record lenght to value"""
         self._RL = int(value)
-        self.write("HORizontal:RECOrdlength "+str(int(value)))
+        self.write("HORizontal:RECOrdlength "+str(int(value-6.65)))
         
-    def acquire(self):
+    def acquire(self, sleep=2):
         """
         Acquire data from both channels, one at a time
         """
@@ -100,26 +97,22 @@ class DPO3014():
                     "CH1" : None,
                     "CH2" : None
                 }
-
+        self.write("ACQuire:STOPAfter RUNSTop")
+        self.write("ACQuire:STATe ON;")
+        time.sleep(sleep)
+        self.write("ACQuire:STATe OFF")            
         for source in readout["sources"]:
-            self.instr.write("DATa:SOUrce "+source)
-            out = np.array(self.instr.query("CURVe?").split(","), dtype=int)
-            data_str = self.instr.query("WAVFrm?")
-
-            v_match = re.search(r"([\d.]+)mV/div", data_str)
-            v_per_div = float(v_match.group(1)) / 1000 if v_match else None
-
-            t_match = re.search(r"([\d.]+)ms/div", data_str)
-            t_per_div = float(t_match.group(1)) / 1000 if t_match else None
+            self.write("DATa:SOUrce "+source)
+            out = np.array(self.query("CURVe?").split(","), dtype=int)
+            data_str = self.query("WAVFrm?")
 
             xzero = float(self.query("WFMInpre:XZERo?"))
             xincr = float(self.query("WFMInpre:XINcr?"))
 
-            yzero = float(self.query("WFMInpre:YZERo?"))
-            ymult = float(self.query("WFMInpre:YMUlt?"))
+            yzero = 0.2*float(self.query("WFMInpre:YZERo?"))
+            ymult = 0.2*float(self.query("WFMInpre:YMUlt?"))
 
             # convert ADC counts → volts
             readout[source] = np.array([yzero + ymult * dp for dp in out])
-            readout["time"] = np.array([xzero + xincr * i for i in range(len(out))])
-            
+            readout["time"] = np.array([xzero + xincr * i for i in range(len(out))])         
         return readout
