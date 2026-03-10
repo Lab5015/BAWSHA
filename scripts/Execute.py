@@ -16,7 +16,7 @@ tek.write("ACQuire:NUMAVg 512")
 
 while (time.time() - start) < TOTAL_TIME:
     print("Acquiring data...")
-    tek.acquire(sleep=60)
+    result = tek.acquire(sleep=60)
     print("Fitting data...")
     fitfit = fitter(result["time"], result["CH1"], result["CH2"], dp)
     try:
