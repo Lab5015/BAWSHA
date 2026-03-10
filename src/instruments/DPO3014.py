@@ -102,26 +102,24 @@ class DPO3014():
                 }
 
         for source in readout["sources"]:
-            if (int(self.instr.query("ACQuire:STATe?").strip())==1):
-                self.instr.write("DATa:SOUrce "+source)
-                out = np.array(self.instr.query("CURVe?").split(","), dtype=int)
-                data_str = self.instr.query("WAVFrm?")
+            self.instr.write("DATa:SOUrce "+source)
+            out = np.array(self.instr.query("CURVe?").split(","), dtype=int)
+            data_str = self.instr.query("WAVFrm?")
 
-                v_match = re.search(r"([\d.]+)mV/div", data_str)
-                v_per_div = float(v_match.group(1)) / 1000 if v_match else None
+            v_match = re.search(r"([\d.]+)mV/div", data_str)
+            v_per_div = float(v_match.group(1)) / 1000 if v_match else None
 
-                t_match = re.search(r"([\d.]+)ms/div", data_str)
-                t_per_div = float(t_match.group(1)) / 1000 if t_match else None
+            t_match = re.search(r"([\d.]+)ms/div", data_str)
+            t_per_div = float(t_match.group(1)) / 1000 if t_match else None
 
-                xzero = float(self.query("WFMInpre:XZERo?"))
-                xincr = float(self.query("WFMInpre:XINcr?"))
+            xzero = float(self.query("WFMInpre:XZERo?"))
+            xincr = float(self.query("WFMInpre:XINcr?"))
 
-                yzero = float(self.query("WFMInpre:YZERo?"))
-                ymult = float(self.query("WFMInpre:YMUlt?"))
+            yzero = float(self.query("WFMInpre:YZERo?"))
+            ymult = float(self.query("WFMInpre:YMUlt?"))
 
-                # convert ADC counts → volts
-                readout[source] = np.array([yzero + ymult * dp for dp in out])
-              
-                readout["time"] = np.array([xzero + xincr * i for i in range(len(out))])
+            # convert ADC counts → volts
+            readout[source] = np.array([yzero + ymult * dp for dp in out])
+            readout["time"] = np.array([xzero + xincr * i for i in range(len(out))])
             
         return readout

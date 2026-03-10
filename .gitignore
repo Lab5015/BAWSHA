@@ -1,3 +1,4 @@
 build/
 notebooks/.ipynb_checkpoints/
 /myfre_notes
+/venv
