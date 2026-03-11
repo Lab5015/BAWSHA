@@ -1,17 +1,20 @@
 import os
-import json
+import io
 from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 class fitter:
-    def __init__(self,time,CH1,CH2,data_folder_path):
+    def __init__(self,time,CH1,CH2):
         self.time = time
         self.CH1 = CH1
         self.CH2 = CH2
+        self.V = None
+        self.F = None
+        self.V0_idx = 0
+        self.best_pts = 0
         self.results = None
-        self.data_folder_path = data_folder_path
 
     def analyze_vphi(self, plot=True):
         
@@ -55,6 +58,8 @@ class fitter:
 
         V = CH2[V1:V1+Vpp]
         F = np.linspace(0,2,len(CH2[V1:V1+Vpp]))
+        self.V = V
+        self.F = F
         
         #----------------------------------------------
         # LINEAR FIT RESULTS vs NUMBER OF POINTS
@@ -63,11 +68,12 @@ class fitter:
         m1 = np.where((F>1) & (V>0))[0][0]
         V0 = V[m1]
         V0_idx = np.where(V == V0)[0][0]
-
+        self.V0_idx = V0_idx
         results = {"pts": [], "As": [], "Bs": [], "A_errs": [], "B_errs": []}
 
+        min_pts = 15
         max_pts = 100
-        for i in np.arange(1,max_pts,1):
+        for i in np.arange(min_pts,max_pts,1):
             temp1 = F[V0_idx-i:V0_idx+i]
             temp2 = V[V0_idx-i:V0_idx+i]
 
@@ -103,25 +109,115 @@ class fitter:
         best_B = results["Bs"][best_pts]
         best_A_err = results["A_errs"][best_pts]
         best_B_err = results["B_errs"][best_pts]
-        if plot:
+        self.results = [best_A, best_A_err, best_B, best_B_err]     
+        self.best_pts = best_pts
+        
+        
+    def analyze_vphi_fix(self):
+        
+        def fit(x, a, b):
+            return a*x + b
+        
+        time = self.time
+        CH1  = self.CH1
+        CH2  = self.CH2
 
-            x_plot = np.linspace(min(F[V0_idx-best_pts:V0_idx+best_pts]),
+        #----------------------------------------------
+        # SELECT ONE MONITOR PERIOD
+        #----------------------------------------------
+
+        t1 = np.argmin(CH1)
+        t2 = np.argmin(CH1) + (np.argmax(CH1) - np.argmin(CH1))
+        pp = abs(t2 - t1)
+        if t1 < t2:
+            mask = (time > time[t1]) & (time < time[t2]) 
+        else: 
+            mask = (time > time[t1]) & (time < time[t1+pp]) 
+
+        #----------------------------------------------
+        # SELECT ONE VPHI PERIOD
+        #----------------------------------------------
+        
+        CH1 = CH1[mask]
+        CH2 = CH2[mask]
+
+        if np.argmin(CH2) < np.argmax(CH2):
+            V2 = np.argmax(CH2)
+            V1 = np.argmin(CH2)
+        else:
+            V2 = np.argmin(CH2)
+            V1 = np.argmax(CH2)
+        Vpp = 4*V2-V1
+
+        #----------------------------------------------
+        # CONVERT VOLTS IN FLUX QUANTA
+        #----------------------------------------------
+
+        V = CH2[V1:V1+Vpp]
+        F = np.linspace(0,2,len(CH2[V1:V1+Vpp]))
+        self.V = V
+        self.F = F
+        
+        #----------------------------------------------
+        # LINEAR FIT RESULTS vs NUMBER OF POINTS
+        #----------------------------------------------
+
+        m1 = np.where((F>1) & (V>0))[0][0]
+        V0 = V[m1]
+        V0_idx = np.where(V == V0)[0][0]
+        self.V0_idx = V0_idx
+        results = {"pts": [], "As": [], "Bs": [], "A_errs": [], "B_errs": []}
+
+        pts = 25
+        self.vest_pts = 25
+        temp1 = F[V0_idx-pts:V0_idx+pts]
+        temp2 = V[V0_idx-pts:V0_idx+pts]
+
+        popt, pcov = curve_fit(fit, temp1, temp2)
+
+        best_A = popt[0]
+        best_B = popt[1]
+        best_A_err = np.sqrt(np.diag(pcov)[0])
+        best_B_err = np.sqrt(np.diag(pcov)[1])
+        self.results = [best_A, best_A_err, best_B, best_B_err]     
+        self.best_pts = pts    
+        
+    def plotter(self):
+        
+        def fit(x, a, b):
+            return a*x + b
+        
+        F = self.F
+        V = self.V
+        V0_idx = self.V0_idx
+        best_pts = self.best_pts
+        best_A = self.results[0]
+        best_B = self.results[2]
+        
+        fig, axs = plt.subplots(figsize=(10,8))
+        x_plot = np.linspace(min(F[V0_idx-best_pts:V0_idx+best_pts]),
                      max(F[V0_idx-best_pts:V0_idx+best_pts]), 1000)
 
-            plt.scatter(F, V, marker='o', s=2, color='k')
-            plt.plot(x_plot, fit(x_plot, best_A, best_B), color='magenta')
-
-            plt.ylabel('CH2 [V]')
-            plt.xlabel(r'CH1 [$\Phi_{0}$]')
-            plt.grid()
-            plt.tight_layout()
-            plt.show()
-        self.results = [best_A, best_A_err, best_B, best_B_err]
+        axs.scatter(F, V, marker='o', s=2, color='k')
+        axs.plot(x_plot, fit(x_plot, best_A, best_B), color='magenta', label='')
+        axs.set_ylabel('CH2 [V]')
+        axs.set_xlabel(r'CH1 [$\Phi_{0}$]')
+        axs.grid()
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.2)
+        textstr = '\n'.join((
+            r'$V_{\Phi_0}=%.2f$' % (best_A, ),
+            r'$\mathrm{Offset}=%.2f$' % (best_B, )))
         
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = self.data_folder_path + f"/vphit_{timestamp}.json"
+        axs.text(0.05, 0.95, textstr, transform=axs.transAxes, fontsize=14,
+        verticalalignment='top', bbox=props)
+        plt.tight_layout()
         
-        with open(filename, "w") as f:
-            json.dump(self.results, f, indent=4)
-        print("File correctly created")
+        
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+        
+        return np.frombuffer(buf.getvalue(), dtype='uint8')
+            
+        
             
