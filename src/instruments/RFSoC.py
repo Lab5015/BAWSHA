@@ -15,15 +15,15 @@ def log(message='',level=1):
         out = message
     print(out)
     return
-    
+
 
 class LoRFSoC:
-    
+
     '''
     Controller for the rfSoc 4x2 (lock-in mode).
-    
+
     '''
-    
+
     def __init__(self, host="212.189.204.163"):
         '''
         ssh xilinx@jarvis2.mib.infn.it
@@ -47,9 +47,10 @@ class LoRFSoC:
         while True:
             output = self.send_cmd(cmd)
             if output == '{"status":"ok"}':
-                break  
+                break
+            time.sleep(0.1)
         return
-        
+
     def get_status(self):
         try:
             out = self.send_cmd({"cmd": "state_info"})
@@ -62,7 +63,7 @@ class LoRFSoC:
             log("cd Simba/software/src/simba", level=3)
             log("sudo -E python server.py", level=3)
             return None
-        return 
+        return
 
     def start_acquisition(self):
         self.force_cmd({"cmd": "start"})
@@ -71,7 +72,7 @@ class LoRFSoC:
     def stop_acquisition(self):
         self.force_cmd({"cmd": "stop"})
         return
-    
+
     def clear_files(self):
         self.force_cmd({"cmd": "remove_files"})
         return
@@ -81,7 +82,7 @@ class LoRFSoC:
         return
 
     def download_data(self,port = 6001, save_dir = "./received_data",verbose=True):
-    
+
         os.makedirs(save_dir, exist_ok=True)
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -116,9 +117,9 @@ class LoRFSoC:
                     f.write(data)
                 if verbose == True:
                     log("[CLIENT] Received and saved " + str(fname),level=2)
-                    
-                    
-                    
+
+
+
     def load_csv(self,path=None):
         if path == None:
             return None
@@ -131,7 +132,7 @@ class LoRFSoC:
             dic = {"name":str(names[i]),"LO_frequency":int(LO_frequency[i]),"resonance_frequency":int(resonance_frequency[i])}
             out.append(dic)
         return out
-        
+
 
     def create_lo_dic(self,fcenter = None,start=None,stop = None,span=None,Nmodes=16):
         flag = len(np.where(np.array([fcenter,start,stop])!=None)[0])
@@ -140,7 +141,7 @@ class LoRFSoC:
             return None
         if flag == 0:
             return None
-       
+
         if fcenter != None:
             start = fcenter - Nmodes//2 * span
             stop = start + Nmodes * span
@@ -150,7 +151,7 @@ class LoRFSoC:
 
         if stop != None:
             start = stop - Nmodes*span
-        
+
         f_lo = np.arange(start, stop, span).astype('int')
         out = []
         for freq in f_lo:

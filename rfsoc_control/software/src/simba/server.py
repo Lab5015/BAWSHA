@@ -255,7 +255,7 @@ def control_server():
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     sock.bind((HOST, PORT))
 
-    sock.listen(1)
+    sock.listen(50)
 
     logging.info(f"[SERVER] listening on {PORT}")
     logging.info(f"[SERVER] firmware version {FW_VERSION}")
