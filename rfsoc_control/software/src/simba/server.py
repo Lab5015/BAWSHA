@@ -255,7 +255,7 @@ def control_server():
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     sock.bind((HOST, PORT))
 
-    sock.listen(1)
+    sock.listen(50)
 
     logging.info(f"[SERVER] listening on {PORT}")
     logging.info(f"[SERVER] firmware version {FW_VERSION}")
@@ -267,9 +267,18 @@ def control_server():
         while True:
             conn, _ = sock.accept()
             with conn:
-                msg = json.loads(conn.recv(4096).decode())
-                cmd = msg.get("cmd")
-
+                try:
+                    data = conn.recv(4096)
+                    if not data:
+                        raise ValueError("No connection?")
+                    msg = json.loads(data.decode("utf-8"))
+                    if not isinstance(msg, dict):
+                        raise ValueError("JSON must be object")
+                    cmd = msg.get("cmd")
+                except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+                    conn.sendall(
+                        b'{"status":"error","msg":"Communication error, try again"}'
+                    )
                 with state_lock:
                     if cmd == "state_info":
                         conn.sendall(f"{server_state}".encode())
@@ -306,6 +315,8 @@ def control_server():
                         )
     except KeyboardInterrupt:
         logging.info("[SERVER] interrupted")
+    except Exception as e:
+        logging.error(f"[SERVER] {e}")
     finally:
         sock.close()
         logging.info("[SERVER] socket closed")
