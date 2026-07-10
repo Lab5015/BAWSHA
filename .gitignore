@@ -2,3 +2,5 @@ build/
 notebooks/.ipynb_checkpoints/
 /NewCrystals
 /venv
+top/
+.Xil/
