@@ -11,13 +11,13 @@ def setup_logging(mode: str):
         logger.handlers.clear()
 
     formatter = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)s | %(threadName)s | %(message)s",
+        fmt="%(asctime)s | %(levelname)s | %(threadName)s | %(funcName)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
     if mode == "service":
         handler = RotatingFileHandler(
-            "rfsoc_server.log",
+            "/home/xilinx/logs/rfsoc_server.log",
             maxBytes=5 * 1024 * 1024,  # 5 MB
             backupCount=3,  # 3 files
         )
