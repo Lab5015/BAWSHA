@@ -18,8 +18,7 @@ entity controller_lockin_v1_0 is
     frequency  : out   std_logic_vector(c_s00_axi_data_width - 1 downto 0); -- reg0
     phase      : out   std_logic_vector(c_s00_axi_data_width - 1 downto 0); -- reg1
     num_tlast  : out   std_logic_vector(c_s00_axi_data_width - 1 downto 0); -- reg2
-    dec_factor : out   std_logic_vector(c_s00_axi_data_width - 1 downto 0); -- reg3
-    data_lost  : in    std_logic_vector(c_s00_axi_data_width - 1 downto 0); -- reg4 (RO)
+    dec_factor : out   std_logic_vector(24 - 1 downto 0); -- reg3
     test_reg   : in    std_logic_vector(c_s00_axi_data_width - 1 downto 0); -- reg5 (RO)
 
     -- User ports ends
@@ -62,8 +61,7 @@ architecture arch_imp of controller_lockin_v1_0 is
       out_reg_0     : out   std_logic_vector(C_S_AXI_DATA_WIDTH - 1 downto 0);
       out_reg_1     : out   std_logic_vector(C_S_AXI_DATA_WIDTH - 1 downto 0);
       out_reg_2     : out   std_logic_vector(C_S_AXI_DATA_WIDTH - 1 downto 0);
-      out_reg_3     : out   std_logic_vector(C_S_AXI_DATA_WIDTH - 1 downto 0);
-      in_reg_4      : in    std_logic_vector(C_S_AXI_DATA_WIDTH - 1 downto 0);
+      out_reg_3     : out   std_logic_vector(24 - 1 downto 0);
       in_reg_5      : in    std_logic_vector(C_S_AXI_DATA_WIDTH - 1 downto 0);
       s_axi_aclk    : in    std_logic;
       s_axi_aresetn : in    std_logic;
@@ -102,7 +100,6 @@ begin
       out_reg_1     => phase,
       out_reg_2     => num_tlast,
       out_reg_3     => dec_factor,
-      in_reg_4      => data_lost,
       in_reg_5      => test_reg,
       s_axi_aclk    => s00_axi_aclk,
       s_axi_aresetn => s00_axi_aresetn,

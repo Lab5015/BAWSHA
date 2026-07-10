@@ -5,6 +5,7 @@ library ieee;
 entity dds is
   generic (
     pac_width       : integer := 32;
+
     cos_table_len   : integer := 10;
     gen_width       : integer := 18;
     delay_out_valid : integer := 5

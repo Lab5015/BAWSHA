@@ -17,39 +17,42 @@ entity counters_v1_0 is
 	port (
 		-- Users to add ports here
 
-        counter_i_00 : in   std_logic_vector(63 downto 0);
-        counter_i_01 : in   std_logic_vector(63 downto 0);
-        counter_i_02 : in   std_logic_vector(63 downto 0);
-        counter_i_03 : in   std_logic_vector(63 downto 0);
-        counter_i_04 : in   std_logic_vector(63 downto 0);
-        counter_i_05 : in   std_logic_vector(63 downto 0);
-        counter_i_06 : in   std_logic_vector(63 downto 0);
-        counter_i_07 : in   std_logic_vector(63 downto 0);
-        counter_i_08 : in   std_logic_vector(63 downto 0);
-        counter_i_09 : in   std_logic_vector(63 downto 0);
-        counter_i_10 : in   std_logic_vector(63 downto 0);
-        counter_i_11 : in   std_logic_vector(63 downto 0);
-        counter_i_12 : in   std_logic_vector(63 downto 0);
-        counter_i_13 : in   std_logic_vector(63 downto 0);
-        counter_i_14 : in   std_logic_vector(63 downto 0);
-        counter_i_15 : in   std_logic_vector(63 downto 0);
-                       
-        counter_q_00 : in   std_logic_vector(63 downto 0);
-        counter_q_01 : in   std_logic_vector(63 downto 0);
-        counter_q_02 : in   std_logic_vector(63 downto 0);
-        counter_q_03 : in   std_logic_vector(63 downto 0);
-        counter_q_04 : in   std_logic_vector(63 downto 0);
-        counter_q_05 : in   std_logic_vector(63 downto 0);
-        counter_q_06 : in   std_logic_vector(63 downto 0);
-        counter_q_07 : in   std_logic_vector(63 downto 0);
-        counter_q_08 : in   std_logic_vector(63 downto 0);
-        counter_q_09 : in   std_logic_vector(63 downto 0);
-        counter_q_10 : in   std_logic_vector(63 downto 0);
-        counter_q_11 : in   std_logic_vector(63 downto 0);
-        counter_q_12 : in   std_logic_vector(63 downto 0);
-        counter_q_13 : in   std_logic_vector(63 downto 0);
-        counter_q_14 : in   std_logic_vector(63 downto 0);
-        counter_q_15 : in   std_logic_vector(63 downto 0);
+        counter_00 : in   std_logic_vector(63 downto 0);
+        counter_01 : in   std_logic_vector(63 downto 0);
+        counter_02 : in   std_logic_vector(63 downto 0);
+        counter_03 : in   std_logic_vector(63 downto 0);
+        counter_04 : in   std_logic_vector(63 downto 0);
+        counter_05 : in   std_logic_vector(63 downto 0);
+        counter_06 : in   std_logic_vector(63 downto 0);
+        counter_07 : in   std_logic_vector(63 downto 0);
+        counter_08 : in   std_logic_vector(63 downto 0);
+        counter_09 : in   std_logic_vector(63 downto 0);
+        counter_10 : in   std_logic_vector(63 downto 0);
+        counter_11 : in   std_logic_vector(63 downto 0);
+--        counter_12 : in   std_logic_vector(63 downto 0);
+--        counter_13 : in   std_logic_vector(63 downto 0);
+--        counter_14 : in   std_logic_vector(63 downto 0);
+--        counter_15 : in   std_logic_vector(63 downto 0);              
+--        counter_16 : in   std_logic_vector(63 downto 0);
+--        counter_17 : in   std_logic_vector(63 downto 0);
+--        counter_18 : in   std_logic_vector(63 downto 0);
+--        counter_19 : in   std_logic_vector(63 downto 0);
+--        counter_20 : in   std_logic_vector(63 downto 0);
+--        counter_21 : in   std_logic_vector(63 downto 0);
+--        counter_22 : in   std_logic_vector(63 downto 0);
+--        counter_23 : in   std_logic_vector(63 downto 0);
+--        counter_24 : in   std_logic_vector(63 downto 0);
+--        counter_25 : in   std_logic_vector(63 downto 0);
+--        counter_26 : in   std_logic_vector(63 downto 0);
+--        counter_27 : in   std_logic_vector(63 downto 0);
+--        counter_28 : in   std_logic_vector(63 downto 0);
+--        counter_29 : in   std_logic_vector(63 downto 0);
+--        counter_30 : in   std_logic_vector(63 downto 0);
+--        counter_31 : in   std_logic_vector(63 downto 0);
+        
+        led_r   : out   std_logic;
+        led_g   : out   std_logic;
+        led_b   : out   std_logic;
 		-- User ports ends
 		-- Do not modify the ports beyond this line
 
@@ -81,6 +84,9 @@ end counters_v1_0;
 
 architecture arch_imp of counters_v1_0 is
 
+  constant zero : std_logic_vector(63 downto 0) := (others => '0');
+  signal data_lost : std_logic := '0';
+
 	-- component declaration
 	component counters_v1_0_S00_AXI is
 		generic (
@@ -88,38 +94,38 @@ architecture arch_imp of counters_v1_0 is
 		C_S_AXI_ADDR_WIDTH	: integer	:= 8
 		);
 		port (
-		counter_i_00 : in   std_logic_vector(63 downto 0);
-        counter_i_01 : in   std_logic_vector(63 downto 0);
-        counter_i_02 : in   std_logic_vector(63 downto 0);
-        counter_i_03 : in   std_logic_vector(63 downto 0);
-        counter_i_04 : in   std_logic_vector(63 downto 0);
-        counter_i_05 : in   std_logic_vector(63 downto 0);
-        counter_i_06 : in   std_logic_vector(63 downto 0);
-        counter_i_07 : in   std_logic_vector(63 downto 0);
-        counter_i_08 : in   std_logic_vector(63 downto 0);
-        counter_i_09 : in   std_logic_vector(63 downto 0);
-        counter_i_10 : in   std_logic_vector(63 downto 0);
-        counter_i_11 : in   std_logic_vector(63 downto 0);
-        counter_i_12 : in   std_logic_vector(63 downto 0);
-        counter_i_13 : in   std_logic_vector(63 downto 0);
-        counter_i_14 : in   std_logic_vector(63 downto 0);
-        counter_i_15 : in   std_logic_vector(63 downto 0);            
-        counter_q_00 : in   std_logic_vector(63 downto 0);
-        counter_q_01 : in   std_logic_vector(63 downto 0);
-        counter_q_02 : in   std_logic_vector(63 downto 0);
-        counter_q_03 : in   std_logic_vector(63 downto 0);
-        counter_q_04 : in   std_logic_vector(63 downto 0);
-        counter_q_05 : in   std_logic_vector(63 downto 0);
-        counter_q_06 : in   std_logic_vector(63 downto 0);
-        counter_q_07 : in   std_logic_vector(63 downto 0);
-        counter_q_08 : in   std_logic_vector(63 downto 0);
-        counter_q_09 : in   std_logic_vector(63 downto 0);
-        counter_q_10 : in   std_logic_vector(63 downto 0);
-        counter_q_11 : in   std_logic_vector(63 downto 0);
-        counter_q_12 : in   std_logic_vector(63 downto 0);
-        counter_q_13 : in   std_logic_vector(63 downto 0);
-        counter_q_14 : in   std_logic_vector(63 downto 0);
-        counter_q_15 : in   std_logic_vector(63 downto 0);
+        counter_00 : in   std_logic_vector(63 downto 0);
+        counter_01 : in   std_logic_vector(63 downto 0);
+        counter_02 : in   std_logic_vector(63 downto 0);
+        counter_03 : in   std_logic_vector(63 downto 0);
+        counter_04 : in   std_logic_vector(63 downto 0);
+        counter_05 : in   std_logic_vector(63 downto 0);
+        counter_06 : in   std_logic_vector(63 downto 0);
+        counter_07 : in   std_logic_vector(63 downto 0);
+        counter_08 : in   std_logic_vector(63 downto 0);
+        counter_09 : in   std_logic_vector(63 downto 0);
+        counter_10 : in   std_logic_vector(63 downto 0);
+        counter_11 : in   std_logic_vector(63 downto 0);
+--        counter_12 : in   std_logic_vector(63 downto 0);
+--        counter_13 : in   std_logic_vector(63 downto 0);
+--        counter_14 : in   std_logic_vector(63 downto 0);
+--        counter_15 : in   std_logic_vector(63 downto 0);              
+--        counter_16 : in   std_logic_vector(63 downto 0);
+--        counter_17 : in   std_logic_vector(63 downto 0);
+--        counter_18 : in   std_logic_vector(63 downto 0);
+--        counter_19 : in   std_logic_vector(63 downto 0);
+--        counter_20 : in   std_logic_vector(63 downto 0);
+--        counter_21 : in   std_logic_vector(63 downto 0);
+--        counter_22 : in   std_logic_vector(63 downto 0);
+--        counter_23 : in   std_logic_vector(63 downto 0);
+--        counter_24 : in   std_logic_vector(63 downto 0);
+--        counter_25 : in   std_logic_vector(63 downto 0);
+--        counter_26 : in   std_logic_vector(63 downto 0);
+--        counter_27 : in   std_logic_vector(63 downto 0);
+--        counter_28 : in   std_logic_vector(63 downto 0);
+--        counter_29 : in   std_logic_vector(63 downto 0);
+--        counter_30 : in   std_logic_vector(63 downto 0);
+--        counter_31 : in   std_logic_vector(63 downto 0);
 		S_AXI_ACLK	: in std_logic;
 		S_AXI_ARESETN	: in std_logic;
 		S_AXI_AWADDR	: in std_logic_vector(C_S_AXI_ADDR_WIDTH-1 downto 0);
@@ -175,43 +181,79 @@ counters_v1_0_S00_AXI_inst : counters_v1_0_S00_AXI
 		S_AXI_RVALID	=> s00_axi_rvalid,
 		S_AXI_RREADY	=> s00_axi_rready,
 		
-		counter_i_00 => counter_i_00,
-		counter_i_01 => counter_i_01,
-		counter_i_02 => counter_i_02,
-		counter_i_03 => counter_i_03,
-		counter_i_04 => counter_i_04,
-		counter_i_05 => counter_i_05,
-		counter_i_06 => counter_i_06,
-		counter_i_07 => counter_i_07,
-		counter_i_08 => counter_i_08,
-		counter_i_09 => counter_i_09,
-		counter_i_10 => counter_i_10,
-		counter_i_11 => counter_i_11,
-		counter_i_12 => counter_i_12,
-		counter_i_13 => counter_i_13,
-		counter_i_14 => counter_i_14,
-		counter_i_15 => counter_i_15,
-		
-		counter_q_00 => counter_q_00,
-		counter_q_01 => counter_q_01,
-		counter_q_02 => counter_q_02,
-		counter_q_03 => counter_q_03,
-		counter_q_04 => counter_q_04,
-		counter_q_05 => counter_q_05,
-		counter_q_06 => counter_q_06,
-		counter_q_07 => counter_q_07,
-		counter_q_08 => counter_q_08,
-		counter_q_09 => counter_q_09,
-		counter_q_10 => counter_q_10,
-		counter_q_11 => counter_q_11,
-		counter_q_12 => counter_q_12,
-		counter_q_13 => counter_q_13,
-		counter_q_14 => counter_q_14,
-		counter_q_15 => counter_q_15
+		counter_00 => counter_00,
+		counter_01 => counter_01,
+		counter_02 => counter_02,
+		counter_03 => counter_03,
+		counter_04 => counter_04,
+		counter_05 => counter_05,
+		counter_06 => counter_06,
+		counter_07 => counter_07,
+		counter_08 => counter_08,
+		counter_09 => counter_09,
+		counter_10 => counter_10,
+		counter_11 => counter_11
+--		counter_12 => counter_12,
+--		counter_13 => counter_13,
+--		counter_14 => counter_14,
+--		counter_15 => counter_15,
+--		counter_16 => counter_16,
+--		counter_17 => counter_17,
+--		counter_18 => counter_18,
+--		counter_19 => counter_19,
+--		counter_20 => counter_20,
+--		counter_21 => counter_21,
+--		counter_22 => counter_22,
+--		counter_23 => counter_23,
+--		counter_24 => counter_24,
+--		counter_25 => counter_25,
+--		counter_26 => counter_26,
+--		counter_27 => counter_27,
+--		counter_28 => counter_28,
+--		counter_29 => counter_29,
+--		counter_30 => counter_30,
+--		counter_31 => counter_31
+
 	);
 
 	-- Add user logic here
-
+  data_lost <= '1' when counter_00 /= zero else
+               '1' when counter_01 /= zero else
+               '1' when counter_02 /= zero else
+               '1' when counter_03 /= zero else
+               '1' when counter_04 /= zero else
+               '1' when counter_05 /= zero else
+               '1' when counter_06 /= zero else
+               '1' when counter_07 /= zero else
+               '1' when counter_08 /= zero else
+               '1' when counter_09 /= zero else
+               '1' when counter_10 /= zero else
+               '1' when counter_11 /= zero else
+--               '1' when counter_12 /= zero else
+--               '1' when counter_13 /= zero else
+--               '1' when counter_14 /= zero else
+--               '1' when counter_15 /= zero else
+--               '1' when counter_16 /= zero else
+--               '1' when counter_17 /= zero else
+--               '1' when counter_18 /= zero else
+--               '1' when counter_19 /= zero else
+--               '1' when counter_20 /= zero else
+--               '1' when counter_21 /= zero else
+--               '1' when counter_22 /= zero else
+--               '1' when counter_23 /= zero else
+--               '1' when counter_24 /= zero else
+--               '1' when counter_25 /= zero else
+--               '1' when counter_26 /= zero else
+--               '1' when counter_27 /= zero else
+--               '1' when counter_28 /= zero else
+--               '1' when counter_29 /= zero else
+--               '1' when counter_30 /= zero else
+--               '1' when counter_31 /= zero else
+               '0';
+               
+  led_r     <= data_lost;
+  led_b     <= '0';
+  led_g     <= not data_lost;
 	-- User logic ends
 
 end arch_imp;

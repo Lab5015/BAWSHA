@@ -16,39 +16,38 @@ entity counters_v1_0_S00_AXI is
 	);
 	port (
 		-- Users to add ports here
-        counter_i_00 : in   std_logic_vector(63 downto 0);
-        counter_i_01 : in   std_logic_vector(63 downto 0);
-        counter_i_02 : in   std_logic_vector(63 downto 0);
-        counter_i_03 : in   std_logic_vector(63 downto 0);
-        counter_i_04 : in   std_logic_vector(63 downto 0);
-        counter_i_05 : in   std_logic_vector(63 downto 0);
-        counter_i_06 : in   std_logic_vector(63 downto 0);
-        counter_i_07 : in   std_logic_vector(63 downto 0);
-        counter_i_08 : in   std_logic_vector(63 downto 0);
-        counter_i_09 : in   std_logic_vector(63 downto 0);
-        counter_i_10 : in   std_logic_vector(63 downto 0);
-        counter_i_11 : in   std_logic_vector(63 downto 0);
-        counter_i_12 : in   std_logic_vector(63 downto 0);
-        counter_i_13 : in   std_logic_vector(63 downto 0);
-        counter_i_14 : in   std_logic_vector(63 downto 0);
-        counter_i_15 : in   std_logic_vector(63 downto 0);
-
-        counter_q_00 : in   std_logic_vector(63 downto 0);
-        counter_q_01 : in   std_logic_vector(63 downto 0);
-        counter_q_02 : in   std_logic_vector(63 downto 0);
-        counter_q_03 : in   std_logic_vector(63 downto 0);
-        counter_q_04 : in   std_logic_vector(63 downto 0);
-        counter_q_05 : in   std_logic_vector(63 downto 0);
-        counter_q_06 : in   std_logic_vector(63 downto 0);
-        counter_q_07 : in   std_logic_vector(63 downto 0);
-        counter_q_08 : in   std_logic_vector(63 downto 0);
-        counter_q_09 : in   std_logic_vector(63 downto 0);
-        counter_q_10 : in   std_logic_vector(63 downto 0);
-        counter_q_11 : in   std_logic_vector(63 downto 0);
-        counter_q_12 : in   std_logic_vector(63 downto 0);
-        counter_q_13 : in   std_logic_vector(63 downto 0);
-        counter_q_14 : in   std_logic_vector(63 downto 0);
-        counter_q_15 : in   std_logic_vector(63 downto 0);
+        counter_00 : in   std_logic_vector(63 downto 0);
+        counter_01 : in   std_logic_vector(63 downto 0);
+        counter_02 : in   std_logic_vector(63 downto 0);
+        counter_03 : in   std_logic_vector(63 downto 0);
+        counter_04 : in   std_logic_vector(63 downto 0);
+        counter_05 : in   std_logic_vector(63 downto 0);
+        counter_06 : in   std_logic_vector(63 downto 0);
+        counter_07 : in   std_logic_vector(63 downto 0);
+        counter_08 : in   std_logic_vector(63 downto 0);
+        counter_09 : in   std_logic_vector(63 downto 0);
+        counter_10 : in   std_logic_vector(63 downto 0);
+        counter_11 : in   std_logic_vector(63 downto 0);
+--        counter_12 : in   std_logic_vector(63 downto 0);
+--        counter_13 : in   std_logic_vector(63 downto 0);
+--        counter_14 : in   std_logic_vector(63 downto 0);
+--        counter_15 : in   std_logic_vector(63 downto 0);              
+--        counter_16 : in   std_logic_vector(63 downto 0);
+--        counter_17 : in   std_logic_vector(63 downto 0);
+--        counter_18 : in   std_logic_vector(63 downto 0);
+--        counter_19 : in   std_logic_vector(63 downto 0);
+--        counter_20 : in   std_logic_vector(63 downto 0);
+--        counter_21 : in   std_logic_vector(63 downto 0);
+--        counter_22 : in   std_logic_vector(63 downto 0);
+--        counter_23 : in   std_logic_vector(63 downto 0);
+--        counter_24 : in   std_logic_vector(63 downto 0);
+--        counter_25 : in   std_logic_vector(63 downto 0);
+--        counter_26 : in   std_logic_vector(63 downto 0);
+--        counter_27 : in   std_logic_vector(63 downto 0);
+--        counter_28 : in   std_logic_vector(63 downto 0);
+--        counter_29 : in   std_logic_vector(63 downto 0);
+--        counter_30 : in   std_logic_vector(63 downto 0);
+--        counter_31 : in   std_logic_vector(63 downto 0);
 
 		-- User ports ends
 		-- Do not modify the ports beyond this line
@@ -165,46 +164,46 @@ architecture arch_imp of counters_v1_0_S00_AXI is
 	signal slv_reg21	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal slv_reg22	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal slv_reg23	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg24	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg25	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg26	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg27	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg28	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg29	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg30	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg31	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg32	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg33	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg34	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg35	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg36	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg37	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg38	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg39	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg40	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg41	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg42	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg43	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg44	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg45	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg46	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg47	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg48	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg49	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg50	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg51	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg52	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg53	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg54	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg55	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg56	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg57	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg58	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg59	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg60	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg61	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg62	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg63	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg24	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg25	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg26	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg27	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg28	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg29	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg30	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg31	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg32	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg33	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg34	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg35	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg36	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg37	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg38	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg39	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg40	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg41	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg42	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg43	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg44	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg45	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg46	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg47	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg48	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg49	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg50	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg51	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg52	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg53	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg54	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg55	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg56	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg57	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg58	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg59	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg60	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg61	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg62	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+--	signal slv_reg63	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal slv_reg_rden	: std_logic;
 	signal reg_data_out	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal byte_index	: integer;
@@ -373,7 +372,16 @@ begin
 	-- and the slave is ready to accept the read address.
 	slv_reg_rden <= axi_arready and S_AXI_ARVALID and (not axi_rvalid) ;
 
-	process (slv_reg0, slv_reg1, slv_reg2, slv_reg3, slv_reg4, slv_reg5, slv_reg6, slv_reg7, slv_reg8, slv_reg9, slv_reg10, slv_reg11, slv_reg12, slv_reg13, slv_reg14, slv_reg15, slv_reg16, slv_reg17, slv_reg18, slv_reg19, slv_reg20, slv_reg21, slv_reg22, slv_reg23, slv_reg24, slv_reg25, slv_reg26, slv_reg27, slv_reg28, slv_reg29, slv_reg30, slv_reg31, slv_reg32, slv_reg33, slv_reg34, slv_reg35, slv_reg36, slv_reg37, slv_reg38, slv_reg39, slv_reg40, slv_reg41, slv_reg42, slv_reg43, slv_reg44, slv_reg45, slv_reg46, slv_reg47, slv_reg48, slv_reg49, slv_reg50, slv_reg51, slv_reg52, slv_reg53, slv_reg54, slv_reg55, slv_reg56, slv_reg57, slv_reg58, slv_reg59, slv_reg60, slv_reg61, slv_reg62, slv_reg63, axi_araddr, S_AXI_ARESETN, slv_reg_rden)
+	process (
+	   slv_reg0, slv_reg1, slv_reg2, slv_reg3, slv_reg4, slv_reg5, slv_reg6, slv_reg7,
+	    slv_reg8, slv_reg9, slv_reg10, slv_reg11, slv_reg12, slv_reg13, slv_reg14, slv_reg15,
+	     slv_reg16, slv_reg17, slv_reg18, slv_reg19, slv_reg20, slv_reg21, slv_reg22, slv_reg23,
+--	      slv_reg24, slv_reg25, slv_reg26, slv_reg27, slv_reg28, slv_reg29, slv_reg30, slv_reg31,
+--	       slv_reg32, slv_reg33, slv_reg34, slv_reg35, slv_reg36, slv_reg37, slv_reg38, slv_reg39,
+--	        slv_reg40, slv_reg41, slv_reg42, slv_reg43, slv_reg44, slv_reg45, slv_reg46, slv_reg47,
+--	         slv_reg48, slv_reg49, slv_reg50, slv_reg51, slv_reg52, slv_reg53, slv_reg54, slv_reg55,
+--	          slv_reg56, slv_reg57, slv_reg58, slv_reg59, slv_reg60, slv_reg61, slv_reg62, slv_reg63,
+	           axi_araddr, S_AXI_ARESETN, slv_reg_rden)
 	variable loc_addr :std_logic_vector(OPT_MEM_ADDR_BITS downto 0);
 	begin
 	    -- Address decoding for reading registers
@@ -427,86 +435,86 @@ begin
 	        reg_data_out <= slv_reg22;
 	      when b"010111" =>
 	        reg_data_out <= slv_reg23;
-	      when b"011000" =>
-	        reg_data_out <= slv_reg24;
-	      when b"011001" =>
-	        reg_data_out <= slv_reg25;
-	      when b"011010" =>
-	        reg_data_out <= slv_reg26;
-	      when b"011011" =>
-	        reg_data_out <= slv_reg27;
-	      when b"011100" =>
-	        reg_data_out <= slv_reg28;
-	      when b"011101" =>
-	        reg_data_out <= slv_reg29;
-	      when b"011110" =>
-	        reg_data_out <= slv_reg30;
-	      when b"011111" =>
-	        reg_data_out <= slv_reg31;
-	      when b"100000" =>
-	        reg_data_out <= slv_reg32;
-	      when b"100001" =>
-	        reg_data_out <= slv_reg33;
-	      when b"100010" =>
-	        reg_data_out <= slv_reg34;
-	      when b"100011" =>
-	        reg_data_out <= slv_reg35;
-	      when b"100100" =>
-	        reg_data_out <= slv_reg36;
-	      when b"100101" =>
-	        reg_data_out <= slv_reg37;
-	      when b"100110" =>
-	        reg_data_out <= slv_reg38;
-	      when b"100111" =>
-	        reg_data_out <= slv_reg39;
-	      when b"101000" =>
-	        reg_data_out <= slv_reg40;
-	      when b"101001" =>
-	        reg_data_out <= slv_reg41;
-	      when b"101010" =>
-	        reg_data_out <= slv_reg42;
-	      when b"101011" =>
-	        reg_data_out <= slv_reg43;
-	      when b"101100" =>
-	        reg_data_out <= slv_reg44;
-	      when b"101101" =>
-	        reg_data_out <= slv_reg45;
-	      when b"101110" =>
-	        reg_data_out <= slv_reg46;
-	      when b"101111" =>
-	        reg_data_out <= slv_reg47;
-	      when b"110000" =>
-	        reg_data_out <= slv_reg48;
-	      when b"110001" =>
-	        reg_data_out <= slv_reg49;
-	      when b"110010" =>
-	        reg_data_out <= slv_reg50;
-	      when b"110011" =>
-	        reg_data_out <= slv_reg51;
-	      when b"110100" =>
-	        reg_data_out <= slv_reg52;
-	      when b"110101" =>
-	        reg_data_out <= slv_reg53;
-	      when b"110110" =>
-	        reg_data_out <= slv_reg54;
-	      when b"110111" =>
-	        reg_data_out <= slv_reg55;
-	      when b"111000" =>
-	        reg_data_out <= slv_reg56;
-	      when b"111001" =>
-	        reg_data_out <= slv_reg57;
-	      when b"111010" =>
-	        reg_data_out <= slv_reg58;
-	      when b"111011" =>
-	        reg_data_out <= slv_reg59;
-	      when b"111100" =>
-	        reg_data_out <= slv_reg60;
-	      when b"111101" =>
-	        reg_data_out <= slv_reg61;
-	      when b"111110" =>
-	        reg_data_out <= slv_reg62;
-	      when b"111111" =>
-	        reg_data_out <= slv_reg63;
+--	      when b"011000" =>
+--	        reg_data_out <= slv_reg24;
+--	      when b"011001" =>
+--	        reg_data_out <= slv_reg25;
+--	      when b"011010" =>
+--	        reg_data_out <= slv_reg26;
+--	      when b"011011" =>
+--	        reg_data_out <= slv_reg27;
+--	      when b"011100" =>
+--	        reg_data_out <= slv_reg28;
+--	      when b"011101" =>
+--	        reg_data_out <= slv_reg29;
+--	      when b"011110" =>
+--	        reg_data_out <= slv_reg30;
+--	      when b"011111" =>
+--	        reg_data_out <= slv_reg31;
+--	      when b"100000" =>
+--	        reg_data_out <= slv_reg32;
+--	      when b"100001" =>
+--	        reg_data_out <= slv_reg33;
+--	      when b"100010" =>
+--	        reg_data_out <= slv_reg34;
+--	      when b"100011" =>
+--	        reg_data_out <= slv_reg35;
+--	      when b"100100" =>
+--	        reg_data_out <= slv_reg36;
+--	      when b"100101" =>
+--	        reg_data_out <= slv_reg37;
+--	      when b"100110" =>
+--	        reg_data_out <= slv_reg38;
+--	      when b"100111" =>
+--	        reg_data_out <= slv_reg39;
+--	      when b"101000" =>
+--	        reg_data_out <= slv_reg40;
+--	      when b"101001" =>
+--	        reg_data_out <= slv_reg41;
+--	      when b"101010" =>
+--	        reg_data_out <= slv_reg42;
+--	      when b"101011" =>
+--	        reg_data_out <= slv_reg43;
+--	      when b"101100" =>
+--	        reg_data_out <= slv_reg44;
+--	      when b"101101" =>
+--	        reg_data_out <= slv_reg45;
+--	      when b"101110" =>
+--	        reg_data_out <= slv_reg46;
+--	      when b"101111" =>
+--	        reg_data_out <= slv_reg47;
+--	      when b"110000" =>
+--	        reg_data_out <= slv_reg48;
+--	      when b"110001" =>
+--	        reg_data_out <= slv_reg49;
+--	      when b"110010" =>
+--	        reg_data_out <= slv_reg50;
+--	      when b"110011" =>
+--	        reg_data_out <= slv_reg51;
+--	      when b"110100" =>
+--	        reg_data_out <= slv_reg52;
+--	      when b"110101" =>
+--	        reg_data_out <= slv_reg53;
+--	      when b"110110" =>
+--	        reg_data_out <= slv_reg54;
+--	      when b"110111" =>
+--	        reg_data_out <= slv_reg55;
+--	      when b"111000" =>
+--	        reg_data_out <= slv_reg56;
+--	      when b"111001" =>
+--	        reg_data_out <= slv_reg57;
+--	      when b"111010" =>
+--	        reg_data_out <= slv_reg58;
+--	      when b"111011" =>
+--	        reg_data_out <= slv_reg59;
+--	      when b"111100" =>
+--	        reg_data_out <= slv_reg60;
+--	      when b"111101" =>
+--	        reg_data_out <= slv_reg61;
+--	      when b"111110" =>
+--	        reg_data_out <= slv_reg62;
+--	      when b"111111" =>
+--	        reg_data_out <= slv_reg63;
 	      when others =>
 	        reg_data_out  <= (others => '0');
 	    end case;
@@ -533,85 +541,101 @@ begin
 
 	-- Add user logic here
     
-    slv_reg0 <= counter_i_00(63 downto 32);
-    slv_reg1 <= counter_i_00(31 downto 0);
-    slv_reg2 <= counter_q_00(63 downto 32);
-    slv_reg3 <= counter_q_00(31 downto 0);
+    slv_reg0  <= counter_00(63 downto 32);
+    slv_reg1  <= counter_00(31 downto 0);
     
-    slv_reg4 <= counter_i_01(63 downto 32);
-    slv_reg5 <= counter_i_01(31 downto 0);
-    slv_reg6 <= counter_q_01(63 downto 32);
-    slv_reg7 <= counter_q_01(31 downto 0);
+    slv_reg2  <= counter_01(63 downto 32);
+    slv_reg3  <= counter_01(31 downto 0);
     
-    slv_reg8 <= counter_i_02(63 downto 32);
-    slv_reg9 <= counter_i_02(31 downto 0);
-    slv_reg10 <= counter_q_02(63 downto 32);
-    slv_reg11 <= counter_q_02(31 downto 0);
+    slv_reg4  <= counter_02(63 downto 32);
+    slv_reg5  <= counter_02(31 downto 0);
     
-    slv_reg12 <= counter_i_03(63 downto 32);
-    slv_reg13 <= counter_i_03(31 downto 0);
-    slv_reg14 <= counter_q_03(63 downto 32);
-    slv_reg15 <= counter_q_03(31 downto 0);
+    slv_reg6  <= counter_03(63 downto 32);
+    slv_reg7  <= counter_03(31 downto 0);
     
-    slv_reg16 <= counter_i_04(63 downto 32);
-    slv_reg17 <= counter_i_04(31 downto 0);
-    slv_reg18 <= counter_q_04(63 downto 32);
-    slv_reg19 <= counter_q_04(31 downto 0);
+    slv_reg8  <= counter_04(63 downto 32);
+    slv_reg9  <= counter_04(31 downto 0);
     
-    slv_reg20 <= counter_i_05(63 downto 32);
-    slv_reg21 <= counter_i_05(31 downto 0);
-    slv_reg22 <= counter_q_05(63 downto 32);
-    slv_reg23 <= counter_q_05(31 downto 0);
+    slv_reg10 <= counter_05(63 downto 32);
+    slv_reg11 <= counter_05(31 downto 0);
     
-    slv_reg24 <= counter_i_06(63 downto 32);
-    slv_reg25 <= counter_i_06(31 downto 0);
-    slv_reg26 <= counter_q_06(63 downto 32);
-    slv_reg27 <= counter_q_06(31 downto 0);
+    slv_reg12 <= counter_06(63 downto 32);
+    slv_reg13 <= counter_06(31 downto 0);
     
-    slv_reg28 <= counter_i_07(63 downto 32);
-    slv_reg29 <= counter_i_07(31 downto 0);
-    slv_reg30 <= counter_q_07(63 downto 32);
-    slv_reg31 <= counter_q_07(31 downto 0);
+    slv_reg14 <= counter_07(63 downto 32);
+    slv_reg15 <= counter_07(31 downto 0);
     
-    slv_reg32 <= counter_i_08(63 downto 32);
-    slv_reg33 <= counter_i_08(31 downto 0);
-    slv_reg34 <= counter_q_08(63 downto 32);
-    slv_reg35 <= counter_q_08(31 downto 0);
+    slv_reg16 <= counter_08(63 downto 32);
+    slv_reg17 <= counter_08(31 downto 0);
     
-    slv_reg36 <= counter_i_09(63 downto 32);
-    slv_reg37 <= counter_i_09(31 downto 0);
-    slv_reg38 <= counter_q_09(63 downto 32);
-    slv_reg39 <= counter_q_09(31 downto 0);
+    slv_reg18 <= counter_09(63 downto 32);
+    slv_reg19 <= counter_09(31 downto 0);
     
-    slv_reg40 <= counter_i_10(63 downto 32);
-    slv_reg41 <= counter_i_10(31 downto 0);
-    slv_reg42 <= counter_q_10(63 downto 32);
-    slv_reg43 <= counter_q_10(31 downto 0);
+    slv_reg20 <= counter_10(63 downto 32);
+    slv_reg21 <= counter_10(31 downto 0);
     
-    slv_reg44 <= counter_i_11(63 downto 32);
-    slv_reg45 <= counter_i_11(31 downto 0);
-    slv_reg46 <= counter_q_11(63 downto 32);
-    slv_reg47 <= counter_q_11(31 downto 0);
+    slv_reg22 <= counter_11(63 downto 32);
+    slv_reg23 <= counter_11(31 downto 0);
     
-    slv_reg48 <= counter_i_12(63 downto 32);
-    slv_reg49 <= counter_i_12(31 downto 0); 
-    slv_reg50 <= counter_q_12(63 downto 32);
-    slv_reg51 <= counter_q_12(31 downto 0); 
+--    slv_reg24 <= counter_12(63 downto 32);
+--    slv_reg25 <= counter_12(31 downto 0);
     
-    slv_reg52 <= counter_i_13(63 downto 32);
-    slv_reg53 <= counter_i_13(31 downto 0); 
-    slv_reg54 <= counter_q_13(63 downto 32);
-    slv_reg55 <= counter_q_13(31 downto 0); 
+--    slv_reg26 <= counter_13(63 downto 32);
+--    slv_reg27 <= counter_13(31 downto 0);
     
-    slv_reg56 <= counter_i_14(63 downto 32);
-    slv_reg57 <= counter_i_14(31 downto 0); 
-    slv_reg58 <= counter_q_14(63 downto 32);
-    slv_reg59 <= counter_q_14(31 downto 0); 
+--    slv_reg28 <= counter_14(63 downto 32);
+--    slv_reg29 <= counter_14(31 downto 0);
     
-    slv_reg60 <= counter_i_15(63 downto 32);
-    slv_reg61 <= counter_i_15(31 downto 0); 
-    slv_reg62 <= counter_q_15(63 downto 32);
-    slv_reg63 <= counter_q_15(31 downto 0); 
+--    slv_reg30 <= counter_15(63 downto 32);
+--    slv_reg31 <= counter_15(31 downto 0);
+    
+--    slv_reg32 <= counter_16(63 downto 32);
+--    slv_reg33 <= counter_16(31 downto 0);
+    
+--    slv_reg34 <= counter_17(63 downto 32);
+--    slv_reg35 <= counter_17(31 downto 0);
+    
+--    slv_reg36 <= counter_18(63 downto 32);
+--    slv_reg37 <= counter_18(31 downto 0);
+    
+--    slv_reg38 <= counter_19(63 downto 32);
+--    slv_reg39 <= counter_19(31 downto 0);
+    
+--    slv_reg40 <= counter_20(63 downto 32);
+--    slv_reg41 <= counter_20(31 downto 0);
+    
+--    slv_reg42 <= counter_21(63 downto 32);
+--    slv_reg43 <= counter_21(31 downto 0);
+    
+--    slv_reg44 <= counter_22(63 downto 32);
+--    slv_reg45 <= counter_22(31 downto 0);
+    
+--    slv_reg46 <= counter_23(63 downto 32);
+--    slv_reg47 <= counter_23(31 downto 0);
+    
+--    slv_reg48 <= counter_24(63 downto 32);
+--    slv_reg49 <= counter_24(31 downto 0); 
+    
+--    slv_reg50 <= counter_25(63 downto 32);
+--    slv_reg51 <= counter_25(31 downto 0); 
+    
+--    slv_reg52 <= counter_26(63 downto 32);
+--    slv_reg53 <= counter_26(31 downto 0); 
+    
+--    slv_reg54 <= counter_27(63 downto 32);
+--    slv_reg55 <= counter_27(31 downto 0); 
+    
+--    slv_reg56 <= counter_28(63 downto 32);
+--    slv_reg57 <= counter_28(31 downto 0); 
+    
+--    slv_reg58 <= counter_29(63 downto 32);
+--    slv_reg59 <= counter_29(31 downto 0); 
+    
+--    slv_reg60 <= counter_30(63 downto 32);
+--    slv_reg61 <= counter_30(31 downto 0); 
+    
+--    slv_reg62 <= counter_31(63 downto 32);
+--    slv_reg63 <= counter_31(31 downto 0); 
 
 	-- User logic ends
 

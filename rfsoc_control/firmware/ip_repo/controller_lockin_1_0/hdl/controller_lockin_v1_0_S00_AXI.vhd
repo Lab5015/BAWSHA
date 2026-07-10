@@ -19,8 +19,7 @@ entity controller_lockin_v1_0_s00_axi is
     out_reg_0 : out   std_logic_vector(c_s_axi_data_width - 1 downto 0);
     out_reg_1 : out   std_logic_vector(c_s_axi_data_width - 1 downto 0);
     out_reg_2 : out   std_logic_vector(c_s_axi_data_width - 1 downto 0);
-    out_reg_3 : out   std_logic_vector(c_s_axi_data_width - 1 downto 0);
-    in_reg_4  : in    std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    out_reg_3 : out   std_logic_vector(24 - 1 downto 0);
     in_reg_5  : in    std_logic_vector(c_s_axi_data_width - 1 downto 0);
 
     -- User ports ends
@@ -486,9 +485,9 @@ begin
   out_reg_0 <= slv_reg0;
   out_reg_1 <= slv_reg1;
   out_reg_2 <= slv_reg2;
-  out_reg_3 <= slv_reg3;
+  out_reg_3 <= slv_reg3(23 downto 0);
 
-  slv_reg4 <= in_reg_4;
+  slv_reg4 <= (others => '0');
   slv_reg5 <= in_reg_5;
 
 -- User logic ends
