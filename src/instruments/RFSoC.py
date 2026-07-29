@@ -72,7 +72,7 @@ class LoRFSoC:
     def stop_acquisition(self):
         self.force_cmd({"cmd": "stop"})
         return
-
+    
     def clear_files(self):
         self.force_cmd({"cmd": "remove_files"})
         return
@@ -134,7 +134,7 @@ class LoRFSoC:
         return out
 
 
-    def create_lo_dic(self,fcenter = None,start=None,stop = None,span=None,Nmodes=16):
+    def create_lo_dic(self,fcenter = None,start=None,stop = None,span=None,Nmodes=16, fcenter2=None, Nmodes2=16, fcenter3=None, Nmodes3=8):
         flag = len(np.where(np.array([fcenter,start,stop])!=None)[0])
         if  flag > 1:
             log("Error: specify only one parameter (fc,fm,fM)",level=1)
@@ -152,9 +152,45 @@ class LoRFSoC:
         if stop != None:
             start = stop - Nmodes*span
 
-        f_lo = np.arange(start, stop, span).astype('int')
+        if fcenter2 != None:
+            start2 = fcenter2 - Nmodes2//2 * span
+            stop2 = fcenter2 + Nmodes2//2 * span
+
+        if fcenter3 != None:
+            start3 = fcenter3 - Nmodes3//2 * span
+            stop3 = fcenter3 + Nmodes3//2 * span
+
+        f_lo  = np.arange(start, stop, span).astype(int)
+
+        f_lo2 = np.array([], dtype=int)
+        if fcenter2 is not None:
+            f_lo2 = np.arange(start2, stop2, span).astype(int)
+
+        f_lo3 = np.array([], dtype=int)
+        if fcenter3 is not None:
+            f_lo3 = np.arange(start3, stop3, span).astype(int)
+
         out = []
         for freq in f_lo:
-            dic = {"name":str(freq),"LO_frequency":int(freq),"resonance_frequency":int(freq)}
+            dic = {"name":"ADC" + str(1) + "_" + str(freq) ,"LO_frequency":int(freq),"resonance_frequency":int(freq)}
             out.append(dic)
-        return out,start,stop,fcenter
+
+        for freq2 in f_lo2:
+            dic = {"name":"ADC" + str(2) + "_" + str(freq2) ,"LO_frequency":int(freq2),"resonance_frequency":int(freq2)}
+            out.append(dic)
+
+        for freq3 in f_lo3:
+            dic = {"name": "ADC3_" + str(freq3), "LO_frequency": int(freq3), "resonance_frequency": int(freq3)}
+            out.append(dic)
+
+        return (
+            out,
+            start, stop, fcenter,
+            start2 if fcenter2 is not None else None,
+            stop2 if fcenter2 is not None else None,
+            fcenter2,
+            start3 if fcenter3 is not None else None,
+            stop3 if fcenter3 is not None else None,
+            fcenter3,
+        )
+

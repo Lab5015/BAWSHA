@@ -30,7 +30,7 @@ def log(message='',level=1):
 
 
         
-def write_gw_data(raw_data_folder = "received_data", data_key="arr_0",delete=True,writer=None):
+def write_gw_data(raw_data_folder = "received_data", data_key="arr_0",delete=True,writer=None, tentac_folder_name="for_tentacular"):
     lista = np.array(listdir(raw_data_folder))
 
     lista_to_del = []  #list of file to delate after writing
@@ -68,6 +68,10 @@ def write_gw_data(raw_data_folder = "received_data", data_key="arr_0",delete=Tru
             lista_to_del.append("ivals_"+str(number)+".npz")
             lista_to_del.append("qvals_"+str(number)+".npz")
 
+    Path(raw_data_folder).parent.joinpath(tentac_folder_name).mkdir(parents=True, exist_ok=True)      
+    print(lista_to_del)
+    for el in lista_to_del:
+        subprocess.call(["cp",raw_data_folder + "/"+el, tentac_folder_name + "/"+el])  
     #delete or move the files
     if delete == True:
         for el in lista_to_del:
@@ -122,7 +126,10 @@ def main():
     parser.add_argument("-fM", "--fstop"   , dest="fstop"   , type=float , help="stop frequency (Hz)", default = None, required = False) 
     parser.add_argument("-fs", "--fspan"   , dest="fspan"   , type=float , help="Spacing between frequencies (Hz)", default = 140, required = False)     
     parser.add_argument("-Nm", "--Nmodes"   , dest="Nmodes"   , type=int , help="Number of lock-in", default = 16, required = False)     
-
+    parser.add_argument("-fc2", "--fcenter2"   , dest="fcenter2"   , type=float , help="center frequency (Hz), second analog input", default = None, required = False) 
+    parser.add_argument("-Nm2", "--Nmodes2"   , dest="Nmodes2"   , type=int , help="Number of lock-in, second analog input", default = 16, required = False)     
+    parser.add_argument("-fc3", "--fcenter3", dest="fcenter3", type=float, help="center frequency (Hz), third analog input", default=None, required=False)
+    parser.add_argument("-Nm3", "--Nmodes3", dest="Nmodes3", type=int, help="Number of lock-in, third analog input", default=8, required=False)
     args = parser.parse_args()    
 
     writer = gw_handler.GwWriter(output_path=args.output_path,name=args.fname)
@@ -141,16 +148,23 @@ def main():
         return
 
 
-    obj = xilinx.create_lo_dic(fcenter = args.fcenter,start=args.fstart,stop = args.fstop,span=args.fspan,Nmodes=args.Nmodes)
+    obj = xilinx.create_lo_dic(fcenter = args.fcenter,start=args.fstart,stop = args.fstop,span=args.fspan,Nmodes=args.Nmodes, fcenter2 = args.fcenter2, Nmodes2 = args.Nmodes2, fcenter3 = args.fcenter3, Nmodes3=args.Nmodes3)
     if obj is not None:
-        input_dic,fm, fM,fc = obj
+        input_dic,fm, fM,fc, fm2, fM2, fc2, fm3, fM3, fc3 = obj
         log("SCAN MODE:",level=1)
         log("fcenter: " + str(fc) + " (Hz)", level=2)
         log("fstart: " + str(fm) + " (Hz)", level=2)
         log("fstop: " + str(fM) + " (Hz)", level=2)
+        log("fcenter2: " + str(fc2) + " (Hz)", level=2)
+        log("fstart2: " + str(fm2) + " (Hz)", level=2)
+        log("fstop2: " + str(fM2) + " (Hz)", level=2)
+        log("fcenter3: " + str(fc3) + " (Hz)", level=2)
+        log("fstart3: " + str(fm3) + " (Hz)", level=2)
+        log("fstop3: " + str(fM3) + " (Hz)", level=2)
         print()
         
     if obj is None:
+        
         input_dic = xilinx.load_csv(args.csv)
         if input_dic is not None:
             log("Sending config data from the csv file",level=1)
@@ -194,12 +208,12 @@ def main():
         time.sleep(args.sleep)
         
         
-        xilinx.download_data(verbose=args.verbose, save_dir=args.output_path+"/received_data")
-        file_in_folder = listdir(args.output_path+"/received_data")
+        #xilinx.download_data(verbose=args.verbose, save_dir=args.output_path+"/received_data")
+        file_in_folder = listdir("/bauscia-nas/data/rfsoc_savedir")
         if (len(file_in_folder)<=2):
             continue
         
-        write_gw_data(raw_data_folder = args.output_path+"/received_data", delete=bool(args.delete), writer=writer)
+        write_gw_data(raw_data_folder = "/bauscia-nas/data/rfsoc_savedir" , delete=bool(args.delete), writer=writer, tentac_folder_name="/bauscia-nas/data/for_tentacular")
         
         reader = gw_handler.GwReader(args.output_path+"/"+args.fname+".gw")
         

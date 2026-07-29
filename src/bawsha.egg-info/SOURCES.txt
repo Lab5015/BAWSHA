@@ -1,5 +1,9 @@
 README.md
 setup.py
+scripts/Execute.py
+scripts/PDEScan.py
+scripts/RealTimeVPhi.py
+scripts/VPhi.py
 scripts/cmdHP.py
 scripts/cmdVNA.py
 scripts/createScan_2P.py
@@ -8,12 +12,15 @@ scripts/launchScan.py
 scripts/logTemp.py
 scripts/multiLaunchScan.sh
 scripts/setTemp.py
+scripts/writeGW.py
 src/bawsha.egg-info/PKG-INFO
 src/bawsha.egg-info/SOURCES.txt
 src/bawsha.egg-info/dependency_links.txt
 src/bawsha.egg-info/not-zip-safe
 src/bawsha.egg-info/requires.txt
 src/bawsha.egg-info/top_level.txt
+src/instruments/DPO3014.py
+src/instruments/RFSoC.py
 src/instruments/__init__.py
 src/instruments/agilent4395A.py
 src/instruments/hp8753e.py
@@ -22,4 +29,9 @@ src/instruments/ls350.py
 src/process/__init__.py
 src/process/utils.py
 src/rw/__init__.py
+src/rw/gw_handler.py
 src/rw/scan_handler.py
+src/simulation/EWE.py
+src/simulation/__init__.py
+src/simulation/signal_sim.py
+test/test_writer.py
