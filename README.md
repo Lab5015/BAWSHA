@@ -67,5 +67,3 @@ ASCII art tree structure taken from [here](https://codepen.io/patrickhlauke/pen/
 ### Documentation
 
 - Python classes for newbies: [from dev.to](https://dev.to/oluchiorji_95/a-gentle-introduction-to-python-classes-for-newbies-p46);
-
-- Test
