@@ -5,8 +5,8 @@ import time
 import h5py
 import numpy as np
 from datetime import datetime
-path = "/home/bausciadaq/Run8/squids/calibration/"
-filename = path + "CH1_cali_600mK_preliminary.h5"
+path = "/home/bausciadaq/Run9/squids/calibration/"
+filename = path + "CH3_cali_1000mK.h5"
 
 scope = TBS2000B()
 desired_rate = int(1e6)
