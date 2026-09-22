@@ -437,6 +437,66 @@ class TBS2000B:
         return readout
 
 
+    def capture_screen(self, correction_50ohm: bool = True) -> dict:
+        """
+        Capture whatever is currently on screen, as-is.
+
+        Unlike the other acquire_* methods, this does NOT touch acquisition
+        mode, sample rate, record length, averaging, or trigger settings —
+        it simply reads back the waveform currently displayed/held on the
+        instrument for CH1 and CH2, using whatever parameters are already
+        configured locally on the scope (set manually on the front panel).
+
+        Args:
+            correction_50ohm (bool): If True, divide the resulting voltages
+                by 2 (matches the correction applied in the other acquire_*
+                methods). Defaults to True.
+
+        Returns:
+            dict with keys:
+                "sources" (list)       : ["CH1", "CH2"]
+                "time"    (np.ndarray) : Time axis in seconds.
+                "CH1"     (np.ndarray) : CH1 voltage array in volts.
+                "CH2"     (np.ndarray) : CH2 voltage array in volts.
+        """
+        readout = {
+            "sources": ["CH1", "CH2"],
+            "time": None,
+            "CH1":  None,
+            "CH2":  None,
+        }
+
+        # Freeze acquisition so CH1 and CH2 are read from the same
+        # held record (no new sample points arriving mid-read).
+        self.instr.write("ACQuire:STATE OFF")
+
+        for source in readout["sources"]:
+            self.write(f"DATA:SOURCE {source}")
+            self.write("WFMOutpre:ENCdg ASCii")
+
+            raw  = self.query("CURVe?")
+            data = np.array([float(x) for x in raw.split(",")])
+
+            xincr = float(self.query("WFMOutpre:XINCR?"))
+            xzero = float(self.query("WFMOutpre:XZERo?"))
+            yoff  = float(self.query("WFMOutpre:YOFf?"))
+            yzero = float(self.query("WFMOutpre:YZERo?"))
+            ymult = float(self.query("WFMOutpre:YMUlt?"))
+
+            volts = (data - yoff) * ymult + yzero
+            if correction_50ohm:
+                volts = volts / 2
+
+            time_axis = xzero + np.arange(len(volts)) * xincr
+
+            readout[source] = volts
+            readout["time"] = time_axis
+
+        # Resume whatever acquisition mode was running before the capture.
+        self.instr.write("ACQuire:STATE RUN")
+
+        return readout
+
     # ------------------------------------------------------------------ #
     #  Properties                                                         #
     # ------------------------------------------------------------------ #
