@@ -9,13 +9,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 def main():
-    usage='\n LiveTime.py -ignore test_Ricky -Tstart 2026-08-02 -Tstop 2026-09-15 \n'
-    parser = argparse.ArgumentParser(description='Config and download data from the RfSoc', usage=usage)
+    usage='\n LiveTime.py -ignore test_Ricky,150902.gw -Tstart 2026-08-02 -Tstop 2026-09-15 \n'
+    parser = argparse.ArgumentParser(description='Display livetime of the experiment', usage=usage)
     
     parser.add_argument("-Tstart", "--Tstart"   , dest="Tstart"   , type=str , help="inf or YYYY-MM-DD", default = "inf", required = False)
     parser.add_argument("-Tstop", "--Tstop"   , dest="Tstop"   , type=str , help="inf or YYYY-MM-DD", default = "inf", required = False)
     parser.add_argument("-fpath", "--fpath"   , dest="fpath"   , type=str , help="path for the .gw folder", default = "/bauscia-nas/data/gw_files/", required = False)    
-    parser.add_argument("-ignore", "--ignore"   , dest="ignore"   , type=str , help="file to ignore. e.g. file1,file2", default = None, required = False)    
+    parser.add_argument("-ignore", "--ignore"   , dest="ignore"   , type=str , help="files to ignore. e.g. file1,file2", default = None, required = False)    
     
     args = parser.parse_args()    
     lista_ignora = []
@@ -29,7 +29,7 @@ def main():
     if args.Tstart != "inf":
         Tstart = reader._string_to_epoch(args.Tstart+" 00:00:00")
     if args.Tstop != "inf":
-        Tstop = reader._string_to_epoch(args.Tstop+ "23:59:59")
+        Tstop = reader._string_to_epoch(args.Tstop+ " 23:59:59")
         
     listone = os.listdir(args.fpath)
     measure_dt = []
