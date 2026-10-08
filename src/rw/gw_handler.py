@@ -6,6 +6,8 @@ import calendar
 import os
 import subprocess
 from scipy import interpolate
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 
 
 def fix_path(path):
@@ -340,7 +342,7 @@ class GwReader:
             array) from ADC units to volts for the provided LO frequency (Hz).
         '''
         
-        self._self._cal_func = fun
+        self._cal_func = fun
         return
         
     def _get_dataset(self,Tname=None,loc = 0,trace=True,idx = None,dtype=None):
@@ -663,6 +665,25 @@ class GwReader:
             
 
         return out
+
+
+    def get_multi_reso_data(self, Tnames=None, tstart=-np.inf, tstop=np.inf,
+                            dtype=None, max_workers=None):
+        '''
+        Run get_reso_data in parallel on a list of resonance labels.
+        Returns a dict {Tname: list of dict}, same output as get_reso_data.
+        If Tnames is None, all tones in the file are read.
+        '''
+        if Tnames is None:
+            Tnames = self.get_tones_labels()
+
+        func = partial(self.get_reso_data, tstart=tstart, tstop=tstop, dtype=dtype)
+        with ProcessPoolExecutor(max_workers=max_workers) as ex:
+            results = list(ex.map(func, Tnames))
+
+        return dict(zip(Tnames, results))    
+
+
 
 
     def get_IQ(self,dic,skip=0,remove_dc=True,correct_circle=False):
