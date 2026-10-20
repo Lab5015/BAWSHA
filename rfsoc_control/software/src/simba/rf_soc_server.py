@@ -12,12 +12,15 @@ from time import sleep
 from pynq import allocate
 
 import numpy as np
-from config_utils import load_lo_config, write_lo_config
+from config_utils import FIR_DEC, FS, load_lo_config, write_lo_config
 from firmware_utils import configure_lockin, load_overlay, read_counters, start_clocks
 
 N_ITER = 10
+SAMPLES_PER_ROW = 256 * N_ITER  # 256 samples per DMA transfer
+BLOCK_TICKS = 256 * FIR_DEC  # clock ticks per counter block (256 samples)
+ROW_TICKS = SAMPLES_PER_ROW * FIR_DEC  # clock ticks per row
 
-FW_VERSION = 3  # 3 ADC activated, 4 lockins per group
+FW_VERSION = 4  # 3 ADC activated, 4 lockins per group; v4: dump handshake fix, 12-sample ADC average
 IP_ADDR = "212.189.204.163"
 
 DATA_DIR = "/bauscia-nas/data/rfsoc_savedir/"
@@ -60,6 +63,7 @@ class RFSoCServer:
         # Acquisition config
         self.frequencies = []
         self.metadata = {}
+        self.counter_anchor = {}  # group -> (file_index, counter) of the time anchor
 
     def start_acquisition(self):
         """Start supervisor, function called by client with start cmd.
@@ -212,6 +216,10 @@ class RFSoCServer:
                     # Swap ping-pong buffer
                     buffer_idx = 1 - buffer_idx
 
+                # Read the counters right after the last transfer, before the
+                # (slow) buffer extraction, to keep the read as early as possible
+                counters = read_counters(self.overlay)
+
                 # Append the final completed buffer
                 last = 1 - buffer_idx
                 for ch in range(len(self.frequencies)):
@@ -226,7 +234,7 @@ class RFSoCServer:
                         [np.concatenate(x) for x in tot_i],
                         [np.concatenate(x) for x in tot_q],
                         t0,
-                        read_counters(self.overlay),
+                        counters,
                     )
                 )
                 file_index += 1
@@ -237,8 +245,10 @@ class RFSoCServer:
         """Allocate contiguous PYNQ ping-pong buffers, one pair per active group.
 
         Lock-ins are packed `self.group_size` per 256-bit DMA channel in
-        hardware. Since dec_factor is fixed and identical for every lock-in,
-        all lanes of a group always produce a new sample in lockstep, so a
+        hardware. In firmware v4 all lanes of a group take dec_factor from
+        lane 0, so lane 0 must always be configured (it is, as frequencies
+        fill the lanes in order). All lanes of a group always produce a new
+        sample in lockstep, so a
         full group must be transferred even if only some of its lanes carry
         a frequency of interest (unused trailing lanes are simply not
         extracted later).
@@ -421,6 +431,42 @@ class RFSoCServer:
         logging.info(f"[CLEAN] removed {len(removed)} files")
         return removed
 
+    def _row_start_time(self, file_index, group, counter, t_start):
+        """Return the time of the first sample of a row, for one DMA group.
+
+        Rows are 2560 contiguous samples (firmware v4), so the start time is
+        predicted from the row count, anchored on the counter of the first row
+        of the acquisition. The counter latches the clock count at the last
+        sample of the row; if it is read late it points to a later 256-sample
+        block, so it is only used as a check, not as the time source.
+        """
+        if file_index == 0 or group not in self.counter_anchor:
+            self.counter_anchor[group] = (file_index, counter)
+        anchor_index, anchor_counter = self.counter_anchor[group]
+        rows = file_index - anchor_index
+        delta = counter - (anchor_counter + rows * ROW_TICKS)
+
+        if delta > 0 and delta % BLOCK_TICKS == 0:
+            logging.warning(
+                f"[T0] group {group} file {file_index}: counter read "
+                f"{delta // BLOCK_TICKS} block(s) late, using the predicted time"
+            )
+        elif delta != 0:
+            # Samples lost/duplicated before the FIFO or counter reset: the
+            # prediction is no longer valid, restart from the counter.
+            logging.error(
+                f"[T0] group {group} file {file_index}: counter off by {delta} "
+                "ticks, re-anchoring on the counter (t0 reliable to one block only)"
+            )
+            self.counter_anchor[group] = (file_index, counter)
+            anchor_index, anchor_counter = file_index, counter
+            rows = 0
+
+        first_sample_ticks = (
+            anchor_counter - (SAMPLES_PER_ROW - 1) * FIR_DEC + rows * ROW_TICKS
+        )
+        return t_start + first_sample_ticks / FS
+
     def save_worker(self):
         """Concurrent save worker, saves IQ data in npz and json for metadata."""
         logging.info("[SERVER] Starting function")
@@ -428,13 +474,22 @@ class RFSoCServer:
             file_index, tot_i, tot_q, t0, counters = self.save_queue.get()
             if self.server_state == "running":
                 try:
+                    # valid_counter_port is shared by all lock-ins of a group
+                    # (hardware constraint), so the time is computed per group.
+                    n_groups = (len(self.metadata) + self.group_size - 1) // (
+                        self.group_size
+                    )
+                    t_first = [
+                        self._row_start_time(
+                            file_index, g, int(counters[g]), t0
+                        )
+                        for g in range(n_groups)
+                    ]
                     for idx, k in enumerate(self.metadata):
-                        # valid_counter_port is now shared by all lock-ins of
-                        # a group (hardware constraint), so per-channel
-                        # diagnostics are only available at group granularity.
-                        group_counter = counters[idx // self.group_size]
-                        self.metadata[k]["t0"] = t0 + int(group_counter) / 122.88e6
-                        self.metadata[k]["counter"] = int(group_counter)
+                        group = idx // self.group_size
+                        # t0 is the time of the FIRST sample of the row
+                        self.metadata[k]["t0"] = t_first[group]
+                        self.metadata[k]["counter"] = int(counters[group])
 
                     np.savez_compressed(
                         os.path.join(self.data_dir, f"ivals_{file_index}.npz"),
