@@ -91,42 +91,50 @@ class GwWriter:
         return
 
 
-    def write_data(self, resonance_label=None, dictionary=None, dataset=None,compression_default=None):   
+    def write_data(self, resonance_label=None, dictionary=None, dataset=None,compression_default=None,data_keys=["i","q","t0","counter"],overwrite=True):   
         
         '''
-        Write one acquisition dataset (I/Q + metadata) for a resonance.
+        Write one acquisition dataset (data + metadata) for a resonance.
 
         Data are written under:
-        `/tones/<resonance_label>/<dataset_index>/data` for trace-like fields and
+        `/tones/<resonance_label>/<dataset_index>/data` for the keys listed in `data_keys` and
         `/tones/<resonance_label>/<dataset_index>/info` for remaining metadata.
+        If the dataset index already exists, only the keys present in `dictionary`
+        are written; all the other existing keys are left untouched.
 
         Parameters
         ----------
         resonance_label : string
             Resonance name (e.g. 3A, 3B...). Default = None.
         dictionary : dict
-            Acquisition dictionary to write. Must contain at least:
-            - "i" : ndarray
-                In-phase (I) lock-in samples.
-            - "q" : ndarray
-                Quadrature (Q) lock-in samples.
-            - "t0" : scalar or array-like
-                Acquisition start time or timestamp reference.
-            - "counter" : scalar or array-like
-                Acquisition counter / index.
+            Acquisition dictionary to write. Must contain at least all the keys
+            listed in `data_keys` (by default "i", "q", "t0", "counter").
             Any additional keys are stored under the dataset `/info` group.
             Default = None.
         dataset : int
             Dataset index to use under the resonance group. If None, the next
             available index is chosen (max existing + 1). If the index already
-            exists, its content is overwritten. Default = None.
+            exists, the keys in `dictionary` are added to it. Default = None.
         compression_default : string
             HDF5 compression filter name (e.g. "gzip") to apply to non-1D numpy
             arrays. If None, no compression is applied. Default = None.
+        data_keys : list of string
+            Keys of `dictionary` to store under `/data`. All the other keys are
+            stored under `/info`. If None, ["i","q","t0","counter"] is used.
+            Default = None.
+        overwrite : bool
+            If True, keys already present in the dataset are overwritten.
+            If False, a KeyError is raised (and nothing is written) if any key
+            of `dictionary` already exists in the dataset. Default = True.
         '''
 
         big_group = "tones"       
         
+        
+        # check that all the data keys are in the dictionary
+        missing = [key for key in data_keys if key not in dictionary]
+        if len(missing) != 0:
+            raise KeyError("Missing data keys in dictionary: " + str(missing))
         
         with h5py.File(self._file,'a') as f:
         
@@ -154,28 +162,41 @@ class GwWriter:
             if self.__check_exist(path=resonance_group,group_name = nn) is False:
                 f.create_group(resonance_group + "/"+nn)               
             dataset = resonance_group + "/"+nn
+            
+            # protect existing keys
+            if overwrite is False:
+                existing = []
+                if "data" in f[dataset]:
+                    existing += [key for key in data_keys if key in f[dataset+"/data"]]
+                if "info" in f[dataset]:
+                    existing += [key for key in dictionary if (key not in data_keys) & (key in f[dataset+"/info"])]
+                if len(existing) != 0:
+                    raise KeyError("Keys already present in " + dataset + ": " + str(existing) + ". Use overwrite=True to overwrite them.")
+            
+            # write data
             if self.__check_exist(path=dataset,group_name = "data") is False:
                 group=f.create_group(dataset+"/"+"data")
             else:
                 group=f.get(dataset+"/"+"data")    
-            I_data = dictionary["i"] 
-            Q_data = dictionary["q"] 
-            self.__save_parameter(group,"i",I_data,compression_default=compression_default)
-            self.__save_parameter(group,"q",Q_data,compression_default=compression_default)
-            self.__save_parameter(group,"t0",np.array(dictionary["t0"]))
-            self.__save_parameter(group,"counter",np.array(dictionary["counter"]))
+            for key in data_keys:
+                value = dictionary[key]
+                if type(value) != str:
+                    value = np.asarray(value)   # lists/scalars -> numpy array (as before for t0 and counter)
+                self.__save_parameter(group,key,value,compression_default=compression_default)
 
-
+            # write metadata
             if self.__check_exist(path=dataset,group_name = "info") is False:
                 group=f.create_group(dataset+"/"+"info")
             else:
                 group=f.get(dataset+"/"+"info")    
             for key, value in dictionary.items():
-                if (key != "i") & (key != "q") & (key != "t0") & (key != "counter"):
+                if key not in data_keys:
                     self.__save_parameter(group,key,value)      
                     
         return
-
+        
+        
+        
     def merge_and_compress(self,compression="gzip"):
     
         '''
@@ -186,6 +207,8 @@ class GwWriter:
         2) Reads each resonance dataset using `GwReader`.
         3) Deletes existing resonance groups under `/tones`.
         4) Rewrites all datasets using `write_data`, applying the chosen compression.
+           Keys stored under `/data` (i, q, t0, counter and any additional
+           variable, e.g. z) are written again under `/data`.
         5) Removes the backup file.
 
         Parameters
@@ -203,12 +226,18 @@ class GwWriter:
         reader.set_conversion(1)
         tones_list = reader.get_tones_labels()
         for tone in tones_list:
+            # all the keys stored under /data, for any dataset index of this tone
+            all_data_keys = []
+            for loc in reader.get_tones_loc(tone):
+                all_data_keys += reader.get_data_keys(tone,loc)
+            all_data_keys = list(set(all_data_keys))
             list_output = reader.get_reso_data(Tname=tone,dtype=np.int32)
             self.__delete_parameter("tones",tone)
             for dic in list_output:
-                self.write_data(resonance_label=tone,dictionary=dic,compression_default=compression)
+                data_keys = [key for key in dic if key in all_data_keys]
+                self.write_data(resonance_label=tone,dictionary=dic,compression_default=compression,data_keys=data_keys)
         subprocess.call(["rm",file2])       
-        return
+        return   
 
             
     def __save_parameter(self,group,variable_name,value,compression_default=None):
@@ -345,6 +374,26 @@ class GwReader:
         self._cal_func = fun
         return
         
+        
+    def get_data_keys(self,Tname,loc=0):
+        '''
+        Return the keys stored under `/tones/<Tname>/<loc>/data`.
+
+        Parameters
+        ----------
+        Tname : string
+            Resonance name (e.g. 3A, 3B...).
+        loc : int
+            Dataset index under the resonance label. Default = 0.
+
+        Return
+        ----------
+        keys : list of string
+            Keys of the data group (e.g. ["counter","i","q","t0","z"]).
+        '''
+        with h5py.File(self._file,'r') as f:
+            return list(f["tones"][Tname][str(loc)]["data"].keys())
+            
     def _get_dataset(self,Tname=None,loc = 0,trace=True,idx = None,dtype=None):
         '''
         Get one dataset for a given resonance and dataset index.
@@ -357,13 +406,15 @@ class GwReader:
             Index of the selected dataset group under the resonance label.
             Default = 0.
         trace : bool
-            If True, include the I/Q traces ("i" and "q") in the output.
+            If True, include all the keys stored under `/data` (i, q and any
+            additional variable, e.g. z) in the output.
             If False, only metadata and timestamps/counters are returned.
             Default = True.
         idx : array-like or None
             Optional selection of internal indices within the dataset group.
-            Use this to select specific acquisitions stored inside the same
-            `loc` group. If None, returns all acquisitions in that group.
+            Use this to select specific acquisitions (rows) stored inside the
+            same `loc` group. The selection is applied to every key under
+            `/data`. If None, returns all acquisitions in that group.
             Default = None.
         dtype : numpy dtype or None
             dtype to cast the returned i/q arrays after conversion.
@@ -377,41 +428,45 @@ class GwReader:
             - "counter" : ndarray or scalar
             - "i" : ndarray (only if trace=True)
             - "q" : ndarray (only if trace=True)
+            - any other key stored under `/data` (only if trace=True).
+              These keys are returned as stored (no ADC-to-V conversion
+              and no dtype cast).
         '''
 
-
-        
-        if (idx != None):
-            if (len(idx) == 1) & (idx[0] == 0):
-                idx = None
         with h5py.File(self._file,'r') as f: 
             if Tname not in f["tones"].keys():
                 print(Tname,"not present")
                 return
             dic = self.__convert_to_dict(f["tones"][Tname][str(loc)]["info"])
-            if idx is not None:
-                dic["t0"] = np.array(f["tones"][Tname][str(loc)]["data/t0"])[idx]
-                dic["counter"] = np.array(f["tones"][Tname][str(loc)]["data/counter"])[idx]
-            else:
-                dic["t0"] = np.array(f["tones"][Tname][str(loc)]["data/t0"])
-                dic["counter"] = np.array(f["tones"][Tname][str(loc)]["data/counter"])
+            data_group = f["tones"][Tname][str(loc)]["data"]
+            
+            # a single acquisition (scalar t0) has no rows to select
+            if (idx is not None) and (data_group["t0"].shape == ()):
+                idx = None
+            
             if trace == True:
+                data_keys = list(data_group.keys())
+            else:
+                data_keys = ["t0","counter"]
+            
+            for key in data_keys:
+                value = np.array(data_group[key])
                 if idx is not None:
-                    i = np.array(f["tones"][Tname][str(loc)]["data/i"])[idx,:]
-                    q = np.array(f["tones"][Tname][str(loc)]["data/q"])[idx,:]
-                else:
-                    i = np.array(f["tones"][Tname][str(loc)]["data/i"])
-                    q = np.array(f["tones"][Tname][str(loc)]["data/q"])
-                
+                    value = value[idx]      # select the rows (works for 1D and 2D arrays)
+                dic[key] = value
+            
+            if trace == True:
                 if self._conversion is not None:
                     conversion = self._conversion
                 else:
                     conversion = self._cal_func(dic["LO_frequency"])
                 
-                dic["i"] = (i*conversion).astype(dtype)
-                dic["q"] = (q*conversion).astype(dtype)
+                dic["i"] = (dic["i"]*conversion).astype(dtype,copy=False)
+                dic["q"] = (dic["q"]*conversion).astype(dtype,copy=False)
 
         return dic
+            
+        
 
 
     def _string_to_epoch(self,string):
@@ -623,49 +678,55 @@ class GwReader:
                 tstop = self._string_to_epoch(tstop)
               
             _,_, tstamps, pos2, pos_internal =self.get_times(Tname=Tname,return_tstamps=True)
-            ii = np.where((tstamps>=tstart)&(tstamps<=tstop))[0]
+            in_window = (tstamps>=tstart)&(tstamps<=tstop)
 
             out = []
-            key_not_consider = ["t0","i","q","counter"]
-            for loc in np.unique(pos2[ii]):
-                ii2 = np.where(pos2==loc)[0]
-                idx = list(pos_internal[np.intersect1d(ii2,ii)])
-                dic = self._get_dataset(Tname=Tname,loc=loc,idx=idx,dtype=dtype)
-                if len(out) == 0:
-                    out.append(dic)
-                    continue
-                # Add i, q and timestamp data IF the other parameters are the same.
-                # Otherwise, create a new output.
-                c = 0
-                for el in out:
-                    if self._check_consistency(dic,el,key_not_consider):
-                        el["i"]= np.vstack([el["i"],dic["i"]])
-                        el["q"]= np.vstack([el["q"],dic["q"]])
-                        el["t0"] = np.append(np.array(el["t0"]),dic["t0"])
-                        el["counter"] = np.append(np.array(el["counter"]),dic["counter"])
-                        break
-                    else:
-                        if c == len(out)-1:
-                            out.append(dic)
-                        else:
-                            c +=1
-                            continue
-                            
-
-            # convert list into array, and fix the order
-            for el in out:
-                if len(el["t0"].shape) != 0:
-                    i_sort =np.argsort(el["t0"])
-                    el["counter"] = el["counter"][i_sort]
-                    el["i"] = el["i"][i_sort,:]
-                    el["q"] = el["q"][i_sort,:]
-                    el["t0"] =el["t0"][i_sort]
+            out_keys = []   # data keys of each element of out
+            for loc in np.unique(pos2[in_window]):
+                in_loc = (pos2==loc)
+                if np.all(in_window[in_loc]):
+                    idx = None      # whole dataset selected: no row selection (avoid a copy)
                 else:
-                    continue
-            
+                    idx = list(pos_internal[in_loc & in_window])
+                dic = self._get_dataset(Tname=Tname,loc=loc,idx=idx,dtype=dtype)
+                key_not_consider = self.get_data_keys(Tname,loc)
+                # Add the data IF the data keys and the other parameters are the same.
+                # Otherwise, create a new output.
+                # The data are collected in lists and merged only once at the end (faster).
+                for c, el in enumerate(out):
+                    same_keys = (set(out_keys[c]) == set(key_not_consider))
+                    if same_keys and self._check_consistency(dic,el,key_not_consider):
+                        for key in key_not_consider:
+                            el[key].append(dic[key])
+                        break
+                else:
+                    # no compatible output found (or out is empty)
+                    for key in key_not_consider:
+                        dic[key] = [dic[key]]
+                    out.append(dic)
+                    out_keys.append(key_not_consider)
+
+            # merge the lists into arrays, and fix the order
+            for c, el in enumerate(out):
+                t0_pieces = el["t0"]
+                for key in out_keys[c]:
+                    pieces = el[key]
+                    if len(pieces) == 1:
+                        el[key] = pieces[0]
+                    elif np.ndim(pieces[0]) == np.ndim(t0_pieces[0]):
+                        # one value per acquisition (e.g. t0, counter) -> append
+                        el[key] = np.concatenate([np.atleast_1d(p) for p in pieces])
+                    else:
+                        # one row per acquisition (e.g. i, q, z) -> stack rows
+                        el[key] = np.vstack(pieces)
+                if len(el["t0"].shape) != 0:
+                    if np.any(np.diff(el["t0"]) < 0):      # sort only if needed
+                        i_sort =np.argsort(el["t0"])
+                        for key in out_keys[c]:
+                            el[key] = el[key][i_sort]      # sort rows (works for 1D and 2D arrays)
 
         return out
-
+ 
 
     def get_multi_reso_data(self, Tnames=None, tstart=-np.inf, tstop=np.inf,
                             dtype=None, max_workers=None):
@@ -688,8 +749,8 @@ class GwReader:
 
     def get_IQ(self,dic,skip=0,remove_dc=True,correct_circle=False):
         
-        I = dic["i"][:,:].flatten("A")
-        Q = dic["q"][:,:].flatten("A")
+        I = dic["i"][:,:].flatten()
+        Q = dic["q"][:,:].flatten()
 
         I0 = np.mean(I[skip:]) if remove_dc else 0
         Q0 = np.mean(Q[skip:]) if remove_dc else 0
@@ -712,7 +773,7 @@ class GwReader:
         t = np.arange(0,dic["i"].shape[1])*(1/dic["fs"])
         for i in range(len(dic["t0"])):
             tt.append(t+dic["t0"][i])
-        t_long = np.array(tt).flatten("A")
+        t_long = np.array(tt).flatten()
         return t_long, z
         
         
