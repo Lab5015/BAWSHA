@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Wed Jul  8 18:36:16 2026" VIVADOVERSION="2023.2">
+<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Mon Oct 19 15:10:04 2026" VIVADOVERSION="2023.2">
 
   <SYSTEMINFO ARCH="zynquplusRFSOC" BOARD="realdigital.org:rfsoc4x2:part0:1.0" DEVICE="xczu48dr" NAME="main" PACKAGE="ffvg1517" SPEEDGRADE="-2"/>
 
@@ -145,6 +145,71 @@
   </EXTERNALINTERFACES>
 
   <MODULES>
+    <MODULE COREREVISION="1" FULLNAME="/adc_224_0/avg12_0" HWVERSION="1.0" INSTANCE="adc_224_0_avg12_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="avg12" VLNV="xilinx.com:module_ref:avg12:1.0">
+      <DOCUMENTS/>
+      <PARAMETERS>
+        <PARAMETER NAME="Component_Name" VALUE="main_avg12_0_0"/>
+        <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
+      </PARAMETERS>
+      <PORTS>
+        <PORT DIR="I" LEFT="191" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="rfdc_m00_axis_tdata">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tdata"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT CLKFREQUENCY="122880000" DIR="I" NAME="clk" SIGIS="clk" SIGNAME="clk_wiz_clk_122_88_MHZ">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="clk_wiz" PORT="clk_122_88_MHZ"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="15" NAME="data_out" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_0" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_1" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_2" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_3" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_0" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_3" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_2" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_1" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_0" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_1" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_2" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_3" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_0" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_1" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_2" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_3" PORT="adc_data"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="data_valid_out" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_0" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_1" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_2" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_3" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_0" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_1" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_2" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_3" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_0" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_1" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_2" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_3" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_0" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_3" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_2" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_1" PORT="adc_data_valid"/>
+          </CONNECTIONS>
+        </PORT>
+      </PORTS>
+      <BUSINTERFACES/>
+    </MODULE>
     <MODULE COREREVISION="8" FULLNAME="/adc_224_0/group_0/axi_control_0" HWVERSION="1.0" INSTANCE="adc_224_0_group_0_axi_control_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="controller_lockin" VLNV="user.org:user:controller_lockin:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
@@ -162,6 +227,9 @@
         <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_0" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_3" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_0_frequency">
@@ -359,11 +427,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA001FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_1_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_1" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_1_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_1" PORT="init_freq"/>
@@ -559,11 +623,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA002FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_2_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_2" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_2_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_2" PORT="init_freq"/>
@@ -759,11 +819,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA003FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_3_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_3" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_3_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_3" PORT="init_freq"/>
@@ -3418,14 +3474,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -3492,14 +3548,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -3519,9 +3575,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_1_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_0_axi_control_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_1_frequency">
@@ -3566,14 +3622,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -3593,9 +3649,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_2_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_0_axi_control_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_2_frequency">
@@ -3640,14 +3696,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -3667,9 +3723,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_3_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_0_axi_control_3" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_0_axi_control_3_frequency">
@@ -3857,6 +3913,9 @@
         <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_0" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_3" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_0_frequency">
@@ -4054,11 +4113,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA006FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_1_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_1" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_1_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_1" PORT="init_freq"/>
@@ -4254,11 +4309,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA007FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_2_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_2" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_2_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_2" PORT="init_freq"/>
@@ -4454,11 +4505,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA008FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_3_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_3" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_3_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_3" PORT="init_freq"/>
@@ -7113,14 +7160,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -7187,14 +7234,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -7214,9 +7261,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_1_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_1_axi_control_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_1_frequency">
@@ -7261,14 +7308,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -7288,9 +7335,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_2_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_1_axi_control_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_2_frequency">
@@ -7335,14 +7382,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -7362,9 +7409,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_3_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_1_axi_control_3" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_1_axi_control_3_frequency">
@@ -7552,6 +7599,9 @@
         <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_0_dec_factor">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_0" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_3" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_0_frequency">
@@ -7749,11 +7799,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA00BFFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_1_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_1" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_1_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_1" PORT="init_freq"/>
@@ -7949,11 +7995,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA00CFFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_2_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_2" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_2_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_2" PORT="init_freq"/>
@@ -8149,11 +8191,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA00DFFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_3_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_3" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_3_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_3" PORT="init_freq"/>
@@ -10808,14 +10846,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -10882,14 +10920,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -10909,9 +10947,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_1_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_2_axi_control_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_1_frequency">
@@ -10956,14 +10994,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -10983,9 +11021,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_2_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_2_axi_control_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_2_frequency">
@@ -11030,14 +11068,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -11057,9 +11095,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_3_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_2_axi_control_3" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_2_axi_control_3_frequency">
@@ -11247,6 +11285,9 @@
         <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_0_dec_factor">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_0" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_3" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_0_frequency">
@@ -11444,11 +11485,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA010FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_1_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_1" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_1_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_1" PORT="init_freq"/>
@@ -11644,11 +11681,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA011FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_2_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_2" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_2_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_2" PORT="init_freq"/>
@@ -11844,11 +11877,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA012FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_3_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_3" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_3_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_3" PORT="init_freq"/>
@@ -14503,14 +14532,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -14577,14 +14606,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -14604,9 +14633,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_1_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_3_axi_control_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_1_frequency">
@@ -14651,14 +14680,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -14678,9 +14707,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_2_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_3_axi_control_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_2_frequency">
@@ -14725,14 +14754,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -14752,9 +14781,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_3_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_3_axi_control_3" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_group_3_axi_control_3_frequency">
@@ -14925,40 +14954,66 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="3" FULLNAME="/adc_224_0/xlslice_0" HWVERSION="1.0" INSTANCE="adc_224_0_xlslice_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="xlslice" VLNV="xilinx.com:ip:xlslice:1.0">
+    <MODULE COREREVISION="1" FULLNAME="/adc_224_1/avg12_0" HWVERSION="1.0" INSTANCE="adc_224_1_avg12_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="avg12" VLNV="xilinx.com:module_ref:avg12:1.0">
       <DOCUMENTS/>
       <PARAMETERS>
-        <PARAMETER NAME="DIN_FROM" VALUE="15"/>
-        <PARAMETER NAME="DIN_TO" VALUE="0"/>
-        <PARAMETER NAME="DIN_WIDTH" VALUE="192"/>
-        <PARAMETER NAME="Component_Name" VALUE="main_xlslice_0_0"/>
-        <PARAMETER NAME="DOUT_WIDTH" VALUE="16"/>
+        <PARAMETER NAME="Component_Name" VALUE="main_avg12_0_1"/>
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="191" NAME="Din" RIGHT="0" SIGIS="undef" SIGNAME="rfdc_m00_axis_tdata">
+        <PORT DIR="I" LEFT="191" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="rfdc_m02_axis_tdata">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m00_axis_tdata"/>
+            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tdata"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="15" NAME="Dout" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_0_xlslice_0_Dout">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_0" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_1" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_2" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_3" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_0" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_3" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_2" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_1" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_0" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_1" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_2" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_3" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_0" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_1" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_2" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_3" PORT="adc_data"/>
+            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT CLKFREQUENCY="122880000" DIR="I" NAME="clk" SIGIS="clk" SIGNAME="clk_wiz_clk_122_88_MHZ">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="clk_wiz" PORT="clk_122_88_MHZ"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="15" NAME="data_out" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_0" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_1" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_2" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_3" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_0" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_1" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_2" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_3" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_0" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_1" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_2" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_3" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_0" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_1" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_2" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_3" PORT="adc_data"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="data_valid_out" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_0" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_1" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_2" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_3" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_0" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_1" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_2" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_3" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_0" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_1" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_2" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_3" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_0" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_1" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_2" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_3" PORT="adc_data_valid"/>
           </CONNECTIONS>
         </PORT>
       </PORTS>
@@ -14981,6 +15036,9 @@
         <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_0" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_3" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_0_frequency">
@@ -15178,11 +15236,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA015FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_1_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_1" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_1_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_1" PORT="init_freq"/>
@@ -15378,11 +15432,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA016FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_2_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_2" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_2_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_2" PORT="init_freq"/>
@@ -15578,11 +15628,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA017FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_3_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_3" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_3_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_3" PORT="init_freq"/>
@@ -18237,14 +18283,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -18311,14 +18357,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -18338,9 +18384,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_1_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_0_axi_control_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_1_frequency">
@@ -18385,14 +18431,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -18412,9 +18458,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_2_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_0_axi_control_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_2_frequency">
@@ -18459,14 +18505,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -18486,9 +18532,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_3_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_0_axi_control_3" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_0_axi_control_3_frequency">
@@ -18676,6 +18722,9 @@
         <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_0" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_3" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_0_frequency">
@@ -18873,11 +18922,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA01AFFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_1_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_1" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_1_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_1" PORT="init_freq"/>
@@ -19073,11 +19118,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA01BFFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_2_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_2" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_2_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_2" PORT="init_freq"/>
@@ -19273,11 +19314,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA01CFFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_3_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_3" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_3_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_3" PORT="init_freq"/>
@@ -21932,14 +21969,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -22006,14 +22043,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -22033,9 +22070,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_1_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_1_axi_control_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_1_frequency">
@@ -22080,14 +22117,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -22107,9 +22144,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_2_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_1_axi_control_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_2_frequency">
@@ -22154,14 +22191,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -22181,9 +22218,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_3_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_1_axi_control_3" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_1_axi_control_3_frequency">
@@ -22371,6 +22408,9 @@
         <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_0_dec_factor">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_0" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_3" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_0_frequency">
@@ -22568,11 +22608,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA01FFFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_1_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_1" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_1_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_1" PORT="init_freq"/>
@@ -22768,11 +22804,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA020FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_2_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_2" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_2_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_2" PORT="init_freq"/>
@@ -22968,11 +23000,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA021FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_3_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_3" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_3_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_3" PORT="init_freq"/>
@@ -25627,14 +25655,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -25701,14 +25729,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -25728,9 +25756,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_1_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_2_axi_control_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_1_frequency">
@@ -25775,14 +25803,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -25802,9 +25830,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_2_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_2_axi_control_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_2_frequency">
@@ -25849,14 +25877,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -25876,9 +25904,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_3_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_2_axi_control_3" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_2_axi_control_3_frequency">
@@ -26066,6 +26094,9 @@
         <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_0_dec_factor">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_0" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_3" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_0_frequency">
@@ -26263,11 +26294,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA024FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_1_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_1" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_1_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_1" PORT="init_freq"/>
@@ -26463,11 +26490,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA025FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_2_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_2" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_2_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_2" PORT="init_freq"/>
@@ -26663,11 +26686,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA026FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_3_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_3" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_3_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_3" PORT="init_freq"/>
@@ -29322,14 +29341,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -29396,14 +29415,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -29423,9 +29442,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_1_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_3_axi_control_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_1_frequency">
@@ -29470,14 +29489,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -29497,9 +29516,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_2_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_3_axi_control_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_2_frequency">
@@ -29544,14 +29563,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_224_1_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -29571,9 +29590,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_3_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_3_axi_control_3" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_group_3_axi_control_3_frequency">
@@ -29744,40 +29763,50 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="3" FULLNAME="/adc_224_1/xlslice_0" HWVERSION="1.0" INSTANCE="adc_224_1_xlslice_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="xlslice" VLNV="xilinx.com:ip:xlslice:1.0">
+    <MODULE COREREVISION="1" FULLNAME="/adc_226_0/avg12_0" HWVERSION="1.0" INSTANCE="adc_226_0_avg12_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="avg12" VLNV="xilinx.com:module_ref:avg12:1.0">
       <DOCUMENTS/>
       <PARAMETERS>
-        <PARAMETER NAME="DIN_FROM" VALUE="15"/>
-        <PARAMETER NAME="DIN_TO" VALUE="0"/>
-        <PARAMETER NAME="DIN_WIDTH" VALUE="192"/>
-        <PARAMETER NAME="Component_Name" VALUE="main_xlslice_0_1"/>
-        <PARAMETER NAME="DOUT_WIDTH" VALUE="16"/>
+        <PARAMETER NAME="Component_Name" VALUE="main_avg12_0_2"/>
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="191" NAME="Din" RIGHT="0" SIGIS="undef" SIGNAME="rfdc_m02_axis_tdata">
+        <PORT DIR="I" LEFT="191" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="rfdc_m20_axis_tdata">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m02_axis_tdata"/>
+            <CONNECTION INSTANCE="rfdc" PORT="m20_axis_tdata"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="O" LEFT="15" NAME="Dout" RIGHT="0" SIGIS="undef" SIGNAME="adc_224_1_xlslice_0_Dout">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m20_axis_tvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_0" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_1" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_2" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_3" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_0" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_1" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_2" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_3" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_0" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_1" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_2" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_3" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_0" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_1" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_2" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_3" PORT="adc_data"/>
+            <CONNECTION INSTANCE="rfdc" PORT="m20_axis_tvalid"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT CLKFREQUENCY="122880000" DIR="I" NAME="clk" SIGIS="clk" SIGNAME="clk_wiz_clk_122_88_MHZ">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="clk_wiz" PORT="clk_122_88_MHZ"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" LEFT="15" NAME="data_out" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_out">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_0" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_1" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_2" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_3" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_0" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_1" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_2" PORT="adc_data"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_3" PORT="adc_data"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="O" NAME="data_valid_out" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_valid_out">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_0" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_1" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_2" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_3" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_0" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_1" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_2" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_3" PORT="adc_data_valid"/>
           </CONNECTIONS>
         </PORT>
       </PORTS>
@@ -29800,6 +29829,9 @@
         <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_0" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_3" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_0_frequency">
@@ -29997,11 +30029,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA029FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_1_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_1" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_1_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_1" PORT="init_freq"/>
@@ -30197,11 +30225,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA02AFFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_2_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_2" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_2_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_2" PORT="init_freq"/>
@@ -30397,11 +30421,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA02BFFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_3_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_3" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_3_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_3" PORT="init_freq"/>
@@ -33056,14 +33076,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m20_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m20_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -33130,14 +33150,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m20_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m20_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -33157,9 +33177,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_1_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_0_axi_control_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_1_frequency">
@@ -33204,14 +33224,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m20_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m20_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -33231,9 +33251,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_2_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_0_axi_control_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_2_frequency">
@@ -33278,14 +33298,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m20_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m20_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -33305,9 +33325,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_3_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_0_axi_control_3" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_0_axi_control_3_frequency">
@@ -33495,6 +33515,9 @@
         <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_0" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_3" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_0_frequency">
@@ -33692,11 +33715,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA02EFFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_1_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_1" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_1_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_1" PORT="init_freq"/>
@@ -33892,11 +33911,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA02FFFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_2_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_2" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_2_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_2" PORT="init_freq"/>
@@ -34092,11 +34107,7 @@
         <PARAMETER NAME="C_S00_AXI_HIGHADDR" VALUE="0xA030FFFF"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_3_dec_factor">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_3" PORT="dec_factor"/>
-          </CONNECTIONS>
-        </PORT>
+        <PORT DIR="O" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" LEFT="31" NAME="frequency" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_3_frequency">
           <CONNECTIONS>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_3" PORT="init_freq"/>
@@ -36751,14 +36762,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m20_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m20_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -36825,14 +36836,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m20_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m20_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -36852,9 +36863,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_1_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_1_axi_control_1" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_1_frequency">
@@ -36899,14 +36910,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m20_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m20_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -36926,9 +36937,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_2_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_1_axi_control_2" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_2_frequency">
@@ -36973,14 +36984,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
       <PORTS>
-        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_xlslice_0_Dout">
+        <PORT DIR="I" LEFT="15" NAME="adc_data" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_xlslice_0" PORT="Dout"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_out"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="rfdc_m20_axis_tvalid">
+        <PORT DIR="I" NAME="adc_data_valid" SIGIS="undef" SIGNAME="adc_226_0_avg12_0_data_valid_out">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m20_axis_tvalid"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="data_valid_out"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="global_axi_control_resetn">
@@ -37000,9 +37011,9 @@
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="dds_output" RIGHT="0" SIGIS="undef"/>
         <PORT DIR="O" NAME="dds_valid" SIGIS="undef"/>
-        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_3_dec_factor">
+        <PORT DIR="I" LEFT="23" NAME="dec_factor" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_0_dec_factor">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_1_axi_control_3" PORT="dec_factor"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_axi_control_0" PORT="dec_factor"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="31" NAME="init_freq" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_group_1_axi_control_3_frequency">
@@ -37172,37 +37183,6 @@
           </PORTMAPS>
         </BUSINTERFACE>
       </BUSINTERFACES>
-    </MODULE>
-    <MODULE COREREVISION="3" FULLNAME="/adc_226_0/xlslice_0" HWVERSION="1.0" INSTANCE="adc_226_0_xlslice_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="xlslice" VLNV="xilinx.com:ip:xlslice:1.0">
-      <DOCUMENTS/>
-      <PARAMETERS>
-        <PARAMETER NAME="DIN_FROM" VALUE="15"/>
-        <PARAMETER NAME="DIN_TO" VALUE="0"/>
-        <PARAMETER NAME="DIN_WIDTH" VALUE="192"/>
-        <PARAMETER NAME="Component_Name" VALUE="main_xlslice_0_2"/>
-        <PARAMETER NAME="DOUT_WIDTH" VALUE="16"/>
-        <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
-      </PARAMETERS>
-      <PORTS>
-        <PORT DIR="I" LEFT="191" NAME="Din" RIGHT="0" SIGIS="undef" SIGNAME="rfdc_m20_axis_tdata">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="rfdc" PORT="m20_axis_tdata"/>
-          </CONNECTIONS>
-        </PORT>
-        <PORT DIR="O" LEFT="15" NAME="Dout" RIGHT="0" SIGIS="undef" SIGNAME="adc_226_0_xlslice_0_Dout">
-          <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_0" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_1" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_2" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_3" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_0" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_1" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_2" PORT="adc_data"/>
-            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_3" PORT="adc_data"/>
-          </CONNECTIONS>
-        </PORT>
-      </PORTS>
-      <BUSINTERFACES/>
     </MODULE>
     <MODULE BD="main_axi_smc_2" BDTYPE="SBD" COREREVISION="21" DRIVERMODE="CORE" FULLNAME="/axi_smc" HWVERSION="1.0" INSTANCE="axi_smc" IPTYPE="BUS" IS_ENABLE="1" MODCLASS="BUS" MODTYPE="smartconnect" SIM_BD="main_axi_smc_2" VLNV="xilinx.com:ip:smartconnect:1.0">
       <DOCUMENTS>
@@ -39565,102 +39545,105 @@
             <CONNECTION INSTANCE="adc_224_0_group_1_fifo" PORT="s_axis_aclk"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_axis_subset_converter" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_dma" PORT="m_axi_s2mm_aclk"/>
-            <CONNECTION INSTANCE="adc_224_0_group_1_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_2" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_3" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_count_dropped" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_stop_if_fifo_full" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_fifo" PORT="s_axis_aclk"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_axis_subset_converter" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_dma" PORT="m_axi_s2mm_aclk"/>
-            <CONNECTION INSTANCE="adc_224_0_group_2_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_2" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_3" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_count_dropped" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_stop_if_fifo_full" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_fifo" PORT="s_axis_aclk"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_axis_subset_converter" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_dma" PORT="m_axi_s2mm_aclk"/>
-            <CONNECTION INSTANCE="adc_224_0_group_3_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_2" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_3" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_count_dropped" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_stop_if_fifo_full" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_fifo" PORT="s_axis_aclk"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_axis_subset_converter" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_dma" PORT="m_axi_s2mm_aclk"/>
-            <CONNECTION INSTANCE="adc_224_0_group_0_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_3" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_2" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_count_dropped" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_dump" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_stop_if_fifo_full" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_fifo" PORT="s_axis_aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_axis_subset_converter" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_dma" PORT="m_axi_s2mm_aclk"/>
-            <CONNECTION INSTANCE="adc_224_1_group_1_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_2" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_3" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_count_dropped" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_stop_if_fifo_full" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_fifo" PORT="s_axis_aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_axis_subset_converter" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_dma" PORT="m_axi_s2mm_aclk"/>
-            <CONNECTION INSTANCE="adc_224_1_group_2_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_2" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_3" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_count_dropped" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_stop_if_fifo_full" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_fifo" PORT="s_axis_aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_axis_subset_converter" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_dma" PORT="m_axi_s2mm_aclk"/>
-            <CONNECTION INSTANCE="adc_224_1_group_3_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_2" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_3" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_count_dropped" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_stop_if_fifo_full" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_fifo" PORT="s_axis_aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_axis_subset_converter" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_dma" PORT="m_axi_s2mm_aclk"/>
-            <CONNECTION INSTANCE="adc_224_1_group_0_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_2" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_3" PORT="clk"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_count_dropped" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_dump" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_stop_if_fifo_full" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_fifo" PORT="s_axis_aclk"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_axis_subset_converter" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_dma" PORT="m_axi_s2mm_aclk"/>
-            <CONNECTION INSTANCE="adc_226_0_group_1_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_2" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_3" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_count_dropped" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_stop_if_fifo_full" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_fifo" PORT="s_axis_aclk"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_axis_subset_converter" PORT="aclk"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_dma" PORT="m_axi_s2mm_aclk"/>
-            <CONNECTION INSTANCE="adc_226_0_group_0_dump" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_2" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_3" PORT="clk"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_count_dropped" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_dump" PORT="clk"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="clk"/>
             <CONNECTION INSTANCE="rfdc" PORT="m2_axis_aclk"/>
           </CONNECTIONS>
         </PORT>
@@ -40134,66 +40117,66 @@
         <PORT DIR="O" NAME="run" SIGIS="undef" SIGNAME="global_axi_control_run">
           <CONNECTIONS>
             <CONNECTION INSTANCE="External_Ports" PORT="led_run"/>
-            <CONNECTION INSTANCE="adc_224_0_group_2_dump" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_0" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_1" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_2" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_lockin_3" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_2_count_dropped" PORT="run"/>
-            <CONNECTION INSTANCE="adc_224_0_group_3_dump" PORT="run"/>
+            <CONNECTION INSTANCE="adc_224_0_group_2_dump" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_0" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_1" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_2" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_lockin_3" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_3_count_dropped" PORT="run"/>
-            <CONNECTION INSTANCE="adc_224_0_group_1_dump" PORT="run"/>
+            <CONNECTION INSTANCE="adc_224_0_group_3_dump" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_0" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_1" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_2" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_lockin_3" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_1_count_dropped" PORT="run"/>
-            <CONNECTION INSTANCE="adc_224_0_group_0_dump" PORT="run"/>
+            <CONNECTION INSTANCE="adc_224_0_group_1_dump" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_0" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_3" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_2" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_lockin_1" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_0_group_0_count_dropped" PORT="run"/>
-            <CONNECTION INSTANCE="adc_224_1_group_2_dump" PORT="run"/>
+            <CONNECTION INSTANCE="adc_224_0_group_0_dump" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_0" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_1" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_2" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_lockin_3" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_2_count_dropped" PORT="run"/>
-            <CONNECTION INSTANCE="adc_224_1_group_3_dump" PORT="run"/>
+            <CONNECTION INSTANCE="adc_224_1_group_2_dump" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_0" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_1" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_2" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_lockin_3" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_3_count_dropped" PORT="run"/>
-            <CONNECTION INSTANCE="adc_224_1_group_1_dump" PORT="run"/>
+            <CONNECTION INSTANCE="adc_224_1_group_3_dump" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_0" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_1" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_2" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_lockin_3" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_1_count_dropped" PORT="run"/>
-            <CONNECTION INSTANCE="adc_224_1_group_0_dump" PORT="run"/>
+            <CONNECTION INSTANCE="adc_224_1_group_1_dump" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_0" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_1" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_2" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_lockin_3" PORT="run"/>
             <CONNECTION INSTANCE="adc_224_1_group_0_count_dropped" PORT="run"/>
-            <CONNECTION INSTANCE="adc_226_0_group_1_dump" PORT="run"/>
+            <CONNECTION INSTANCE="adc_224_1_group_0_dump" PORT="run"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_0" PORT="run"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_1" PORT="run"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_2" PORT="run"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_lockin_3" PORT="run"/>
             <CONNECTION INSTANCE="adc_226_0_group_1_count_dropped" PORT="run"/>
-            <CONNECTION INSTANCE="adc_226_0_group_0_dump" PORT="run"/>
+            <CONNECTION INSTANCE="adc_226_0_group_1_dump" PORT="run"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_0" PORT="run"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_1" PORT="run"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_2" PORT="run"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_lockin_3" PORT="run"/>
             <CONNECTION INSTANCE="adc_226_0_group_0_count_dropped" PORT="run"/>
+            <CONNECTION INSTANCE="adc_226_0_group_0_dump" PORT="run"/>
           </CONNECTIONS>
         </PORT>
         <PORT CLKFREQUENCY="99999985" DIR="I" NAME="s00_axi_aclk" SIGIS="clk" SIGNAME="zynq_ultra_ps_pl_clk0">
@@ -42092,54 +42075,24 @@
         <PORT DIR="O" NAME="irq" SENSITIVITY="LEVEL_HIGH" SIGIS="INTERRUPT"/>
         <PORT DIR="O" LEFT="191" NAME="m00_axis_tdata" RIGHT="0" SIGIS="undef" SIGNAME="rfdc_m00_axis_tdata">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_xlslice_0" PORT="Din"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="adc_data"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="m00_axis_tready" SIGIS="undef"/>
         <PORT DIR="O" NAME="m00_axis_tvalid" SIGIS="undef" SIGNAME="rfdc_m00_axis_tvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_0" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_1" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_2" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_2_lockin_3" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_0" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_1" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_2" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_3_lockin_3" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_0" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_1" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_2" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_1_lockin_3" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_0" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_3" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_2" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_0_group_0_lockin_1" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_0_avg12_0" PORT="adc_data_valid"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="191" NAME="m02_axis_tdata" RIGHT="0" SIGIS="undef" SIGNAME="rfdc_m02_axis_tdata">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_xlslice_0" PORT="Din"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="adc_data"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="m02_axis_tready" SIGIS="undef"/>
         <PORT DIR="O" NAME="m02_axis_tvalid" SIGIS="undef" SIGNAME="rfdc_m02_axis_tvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_0" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_1" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_2" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_2_lockin_3" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_0" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_1" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_2" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_3_lockin_3" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_0" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_1" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_2" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_1_lockin_3" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_0" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_1" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_2" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_224_1_group_0_lockin_3" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_224_1_avg12_0" PORT="adc_data_valid"/>
           </CONNECTIONS>
         </PORT>
         <PORT CLKFREQUENCY="122880000" DIR="I" NAME="m0_axis_aclk" SIGIS="clk" SIGNAME="clk_wiz_clk_122_88_MHZ">
@@ -42154,20 +42107,13 @@
         </PORT>
         <PORT DIR="O" LEFT="191" NAME="m20_axis_tdata" RIGHT="0" SIGIS="undef" SIGNAME="rfdc_m20_axis_tdata">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_xlslice_0" PORT="Din"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="adc_data"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="m20_axis_tready" SIGIS="undef"/>
         <PORT DIR="O" NAME="m20_axis_tvalid" SIGIS="undef" SIGNAME="rfdc_m20_axis_tvalid">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_0" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_1" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_2" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_226_0_group_1_lockin_3" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_0" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_1" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_2" PORT="adc_data_valid"/>
-            <CONNECTION INSTANCE="adc_226_0_group_0_lockin_3" PORT="adc_data_valid"/>
+            <CONNECTION INSTANCE="adc_226_0_avg12_0" PORT="adc_data_valid"/>
           </CONNECTIONS>
         </PORT>
         <PORT CLKFREQUENCY="122880000" DIR="I" NAME="m2_axis_aclk" SIGIS="clk" SIGNAME="clk_wiz_clk_122_88_MHZ">

@@ -172,6 +172,16 @@ xilinx.com:ip:axi_dma:7.1\
 }
 
 ##################################################################
+# ADD NEW SOURCES
+##################################################################
+foreach f [list avg12.vhd] {
+   if { [llength [get_files -quiet $f]] == 0 } {
+      add_files -norecurse [file normalize [file join $script_folder .. src $f]]
+   }
+}
+update_compile_order -fileset sources_1
+
+##################################################################
 # CHECK Modules
 ##################################################################
 set bCheckModules 1
@@ -237,6 +247,9 @@ lockin_wrapper\
 lockin_wrapper\
 sing_counter_mod\
 dump\
+avg12\
+avg12\
+avg12\
 "
 
    set list_mods_missing ""
@@ -523,10 +536,9 @@ proc create_hier_cell_group_1_2 { parentCell nameHier } {
   connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
 
   # Create port connections
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_1 [get_bd_pins axi_control_1/dec_factor] [get_bd_pins lockin_1/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_2 [get_bd_pins axi_control_2/dec_factor] [get_bd_pins lockin_2/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_3 [get_bd_pins axi_control_3/dec_factor] [get_bd_pins lockin_3/dec_factor]
+  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
+  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
+  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
   connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
   connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
   connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
@@ -827,10 +839,9 @@ proc create_hier_cell_group_0_2 { parentCell nameHier } {
   connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
 
   # Create port connections
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_1 [get_bd_pins axi_control_1/dec_factor] [get_bd_pins lockin_1/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_2 [get_bd_pins axi_control_2/dec_factor] [get_bd_pins lockin_2/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_3 [get_bd_pins axi_control_3/dec_factor] [get_bd_pins lockin_3/dec_factor]
+  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
+  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
+  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
   connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
   connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
   connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
@@ -1131,10 +1142,9 @@ proc create_hier_cell_group_3_1 { parentCell nameHier } {
   connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
 
   # Create port connections
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_1 [get_bd_pins axi_control_1/dec_factor] [get_bd_pins lockin_1/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_2 [get_bd_pins axi_control_2/dec_factor] [get_bd_pins lockin_2/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_3 [get_bd_pins axi_control_3/dec_factor] [get_bd_pins lockin_3/dec_factor]
+  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
+  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
+  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
   connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
   connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
   connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
@@ -1435,10 +1445,9 @@ proc create_hier_cell_group_2_1 { parentCell nameHier } {
   connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
 
   # Create port connections
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_1 [get_bd_pins axi_control_1/dec_factor] [get_bd_pins lockin_1/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_2 [get_bd_pins axi_control_2/dec_factor] [get_bd_pins lockin_2/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_3 [get_bd_pins axi_control_3/dec_factor] [get_bd_pins lockin_3/dec_factor]
+  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
+  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
+  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
   connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
   connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
   connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
@@ -1739,10 +1748,9 @@ proc create_hier_cell_group_1_1 { parentCell nameHier } {
   connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
 
   # Create port connections
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_1 [get_bd_pins axi_control_1/dec_factor] [get_bd_pins lockin_1/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_2 [get_bd_pins axi_control_2/dec_factor] [get_bd_pins lockin_2/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_3 [get_bd_pins axi_control_3/dec_factor] [get_bd_pins lockin_3/dec_factor]
+  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
+  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
+  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
   connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
   connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
   connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
@@ -2043,10 +2051,9 @@ proc create_hier_cell_group_0_1 { parentCell nameHier } {
   connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
 
   # Create port connections
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_1 [get_bd_pins axi_control_1/dec_factor] [get_bd_pins lockin_1/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_2 [get_bd_pins axi_control_2/dec_factor] [get_bd_pins lockin_2/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_3 [get_bd_pins axi_control_3/dec_factor] [get_bd_pins lockin_3/dec_factor]
+  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
+  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
+  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
   connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
   connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
   connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
@@ -2347,10 +2354,9 @@ proc create_hier_cell_group_3 { parentCell nameHier } {
   connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
 
   # Create port connections
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_1 [get_bd_pins axi_control_1/dec_factor] [get_bd_pins lockin_1/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_2 [get_bd_pins axi_control_2/dec_factor] [get_bd_pins lockin_2/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_3 [get_bd_pins axi_control_3/dec_factor] [get_bd_pins lockin_3/dec_factor]
+  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
+  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
+  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
   connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
   connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
   connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
@@ -2651,10 +2657,9 @@ proc create_hier_cell_group_2 { parentCell nameHier } {
   connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
 
   # Create port connections
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_1 [get_bd_pins axi_control_1/dec_factor] [get_bd_pins lockin_1/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_2 [get_bd_pins axi_control_2/dec_factor] [get_bd_pins lockin_2/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_3 [get_bd_pins axi_control_3/dec_factor] [get_bd_pins lockin_3/dec_factor]
+  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
+  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
+  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
   connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
   connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
   connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
@@ -2955,10 +2960,9 @@ proc create_hier_cell_group_1 { parentCell nameHier } {
   connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
 
   # Create port connections
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_1 [get_bd_pins axi_control_1/dec_factor] [get_bd_pins lockin_1/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_2 [get_bd_pins axi_control_2/dec_factor] [get_bd_pins lockin_2/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_3 [get_bd_pins axi_control_3/dec_factor] [get_bd_pins lockin_3/dec_factor]
+  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
+  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
+  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
   connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
   connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
   connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
@@ -3259,10 +3263,9 @@ proc create_hier_cell_group_0 { parentCell nameHier } {
   connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
 
   # Create port connections
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_1 [get_bd_pins axi_control_1/dec_factor] [get_bd_pins lockin_1/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_2 [get_bd_pins axi_control_2/dec_factor] [get_bd_pins lockin_2/dec_factor]
-  connect_bd_net -net axi_control_dec_factor_3 [get_bd_pins axi_control_3/dec_factor] [get_bd_pins lockin_3/dec_factor]
+  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
+  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
+  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
   connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
   connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
   connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
@@ -3384,13 +3387,16 @@ proc create_hier_cell_adc_226_0 { parentCell nameHier } {
   # Create instance: group_1
   create_hier_cell_group_1_2 $hier_obj group_1
 
-  # Create instance: xlslice_0, and set properties
-  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
-  set_property -dict [list \
-    CONFIG.DIN_FROM {15} \
-    CONFIG.DIN_WIDTH {192} \
-    CONFIG.DOUT_WIDTH {16} \
-  ] $xlslice_0
+  # Create instance: avg12_0 (average of the 12 RFDC samples per clock), and set properties
+  set block_name avg12
+  set block_cell_name avg12_0
+  if { [catch {set avg12_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $avg12_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
 
 
   # Create interface connections
@@ -3408,9 +3414,9 @@ proc create_hier_cell_adc_226_0 { parentCell nameHier } {
   connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M05_AXI [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins group_0/S00_AXI2]
 
   # Create port connections
-  connect_bd_net -net adc_data_1 [get_bd_pins adc_data] [get_bd_pins xlslice_0/Din]
-  connect_bd_net -net adc_data_3 [get_bd_pins xlslice_0/Dout] [get_bd_pins group_1/adc_data] [get_bd_pins group_0/adc_data]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins group_1/clk] [get_bd_pins group_0/clk]
+  connect_bd_net -net adc_data_1 [get_bd_pins adc_data] [get_bd_pins avg12_0/adc_data]
+  connect_bd_net -net adc_data_3 [get_bd_pins avg12_0/data_out] [get_bd_pins group_1/adc_data] [get_bd_pins group_0/adc_data]
+  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins avg12_0/clk] [get_bd_pins group_1/clk] [get_bd_pins group_0/clk]
   connect_bd_net -net global_axi_control_0_config_port [get_bd_pins led_config] [get_bd_pins group_1/config_port] [get_bd_pins group_0/config_port]
   connect_bd_net -net global_axi_control_0_reset [get_bd_pins led_reset] [get_bd_pins group_1/reset] [get_bd_pins group_0/reset]
   connect_bd_net -net group_1_valid_counter_port [get_bd_pins group_1/valid_counter_port] [get_bd_pins valid_counter_port1]
@@ -3418,7 +3424,8 @@ proc create_hier_cell_adc_226_0 { parentCell nameHier } {
   connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins group_1/axi_resetn] [get_bd_pins group_0/axi_resetn]
   connect_bd_net -net run [get_bd_pins led_run] [get_bd_pins group_1/led_run] [get_bd_pins group_0/led_run]
   connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins group_1/s_axis_aresetn] [get_bd_pins group_0/s_axis_aresetn]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins group_1/adc_data_valid] [get_bd_pins group_0/adc_data_valid]
+  connect_bd_net -net adc_data_valid_raw [get_bd_pins adc_data_valid] [get_bd_pins avg12_0/adc_data_valid]
+  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins avg12_0/data_valid_out] [get_bd_pins group_1/adc_data_valid] [get_bd_pins group_0/adc_data_valid]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins group_1/s_axi_lite_aclk] [get_bd_pins group_0/s_axi_lite_aclk]
 
   # Restore current instance
@@ -3536,13 +3543,16 @@ proc create_hier_cell_adc_224_1 { parentCell nameHier } {
   # Create instance: group_3
   create_hier_cell_group_3_1 $hier_obj group_3
 
-  # Create instance: xlslice_0, and set properties
-  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
-  set_property -dict [list \
-    CONFIG.DIN_FROM {15} \
-    CONFIG.DIN_WIDTH {192} \
-    CONFIG.DOUT_WIDTH {16} \
-  ] $xlslice_0
+  # Create instance: avg12_0 (average of the 12 RFDC samples per clock), and set properties
+  set block_name avg12
+  set block_cell_name avg12_0
+  if { [catch {set avg12_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $avg12_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
 
 
   # Create interface connections
@@ -3572,8 +3582,8 @@ proc create_hier_cell_adc_224_1 { parentCell nameHier } {
   connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M05_AXI [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins group_0/S00_AXI2]
 
   # Create port connections
-  connect_bd_net -net adc_data_1 [get_bd_pins adc_data] [get_bd_pins xlslice_0/Din]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins group_1/clk] [get_bd_pins group_2/clk] [get_bd_pins group_3/clk] [get_bd_pins group_0/clk]
+  connect_bd_net -net adc_data_1 [get_bd_pins adc_data] [get_bd_pins avg12_0/adc_data]
+  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins avg12_0/clk] [get_bd_pins group_1/clk] [get_bd_pins group_2/clk] [get_bd_pins group_3/clk] [get_bd_pins group_0/clk]
   connect_bd_net -net global_axi_control_0_config_port [get_bd_pins led_config] [get_bd_pins group_2/config_port] [get_bd_pins group_3/config_port] [get_bd_pins group_1/config_port] [get_bd_pins group_0/config_port]
   connect_bd_net -net global_axi_control_0_reset [get_bd_pins led_reset] [get_bd_pins group_2/reset] [get_bd_pins group_3/reset] [get_bd_pins group_1/reset] [get_bd_pins group_0/reset]
   connect_bd_net -net group_1_valid_counter_port [get_bd_pins group_1/valid_counter_port] [get_bd_pins valid_counter_port1]
@@ -3583,8 +3593,9 @@ proc create_hier_cell_adc_224_1 { parentCell nameHier } {
   connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins group_2/axi_resetn] [get_bd_pins group_3/axi_resetn] [get_bd_pins group_1/axi_resetn] [get_bd_pins group_0/axi_resetn]
   connect_bd_net -net run [get_bd_pins led_run] [get_bd_pins group_2/led_run] [get_bd_pins group_3/led_run] [get_bd_pins group_1/led_run] [get_bd_pins group_0/led_run]
   connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins group_2/s_axis_aresetn] [get_bd_pins group_3/s_axis_aresetn] [get_bd_pins group_1/s_axis_aresetn] [get_bd_pins group_0/s_axis_aresetn]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins group_2/adc_data_valid] [get_bd_pins group_3/adc_data_valid] [get_bd_pins group_1/adc_data_valid] [get_bd_pins group_0/adc_data_valid]
-  connect_bd_net -net xlslice_0_Dout [get_bd_pins xlslice_0/Dout] [get_bd_pins group_3/adc_data] [get_bd_pins group_2/adc_data] [get_bd_pins group_0/adc_data] [get_bd_pins group_1/adc_data]
+  connect_bd_net -net adc_data_valid_raw [get_bd_pins adc_data_valid] [get_bd_pins avg12_0/adc_data_valid]
+  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins avg12_0/data_valid_out] [get_bd_pins group_2/adc_data_valid] [get_bd_pins group_3/adc_data_valid] [get_bd_pins group_1/adc_data_valid] [get_bd_pins group_0/adc_data_valid]
+  connect_bd_net -net avg12_data_out [get_bd_pins avg12_0/data_out] [get_bd_pins group_3/adc_data] [get_bd_pins group_2/adc_data] [get_bd_pins group_0/adc_data] [get_bd_pins group_1/adc_data]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins group_2/s_axi_lite_aclk] [get_bd_pins group_3/s_axi_lite_aclk] [get_bd_pins group_1/s_axi_lite_aclk] [get_bd_pins group_0/s_axi_lite_aclk]
 
   # Restore current instance
@@ -3702,13 +3713,16 @@ proc create_hier_cell_adc_224_0 { parentCell nameHier } {
   # Create instance: group_3
   create_hier_cell_group_3 $hier_obj group_3
 
-  # Create instance: xlslice_0, and set properties
-  set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
-  set_property -dict [list \
-    CONFIG.DIN_FROM {15} \
-    CONFIG.DIN_WIDTH {192} \
-    CONFIG.DOUT_WIDTH {16} \
-  ] $xlslice_0
+  # Create instance: avg12_0 (average of the 12 RFDC samples per clock), and set properties
+  set block_name avg12
+  set block_cell_name avg12_0
+  if { [catch {set avg12_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $avg12_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
 
 
   # Create interface connections
@@ -3738,8 +3752,8 @@ proc create_hier_cell_adc_224_0 { parentCell nameHier } {
   connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M05_AXI [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins group_0/S00_AXI2]
 
   # Create port connections
-  connect_bd_net -net adc_data_1 [get_bd_pins adc_data] [get_bd_pins xlslice_0/Din]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins group_1/clk] [get_bd_pins group_2/clk] [get_bd_pins group_3/clk] [get_bd_pins group_0/clk]
+  connect_bd_net -net adc_data_1 [get_bd_pins adc_data] [get_bd_pins avg12_0/adc_data]
+  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins avg12_0/clk] [get_bd_pins group_1/clk] [get_bd_pins group_2/clk] [get_bd_pins group_3/clk] [get_bd_pins group_0/clk]
   connect_bd_net -net global_axi_control_0_config_port [get_bd_pins led_config] [get_bd_pins group_2/config_port] [get_bd_pins group_3/config_port] [get_bd_pins group_1/config_port] [get_bd_pins group_0/config_port]
   connect_bd_net -net global_axi_control_0_reset [get_bd_pins led_reset] [get_bd_pins group_2/reset] [get_bd_pins group_3/reset] [get_bd_pins group_1/reset] [get_bd_pins group_0/reset]
   connect_bd_net -net group_1_valid_counter_port [get_bd_pins group_1/valid_counter_port] [get_bd_pins valid_counter_port1]
@@ -3749,8 +3763,9 @@ proc create_hier_cell_adc_224_0 { parentCell nameHier } {
   connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins group_2/axi_resetn] [get_bd_pins group_3/axi_resetn] [get_bd_pins group_1/axi_resetn] [get_bd_pins group_0/axi_resetn]
   connect_bd_net -net run [get_bd_pins led_run] [get_bd_pins group_2/led_run] [get_bd_pins group_3/led_run] [get_bd_pins group_1/led_run] [get_bd_pins group_0/led_run]
   connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins group_2/s_axis_aresetn] [get_bd_pins group_3/s_axis_aresetn] [get_bd_pins group_1/s_axis_aresetn] [get_bd_pins group_0/s_axis_aresetn]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins group_2/adc_data_valid] [get_bd_pins group_3/adc_data_valid] [get_bd_pins group_1/adc_data_valid] [get_bd_pins group_0/adc_data_valid]
-  connect_bd_net -net xlslice_0_Dout [get_bd_pins xlslice_0/Dout] [get_bd_pins group_1/adc_data] [get_bd_pins group_0/adc_data] [get_bd_pins group_2/adc_data] [get_bd_pins group_3/adc_data]
+  connect_bd_net -net adc_data_valid_raw [get_bd_pins adc_data_valid] [get_bd_pins avg12_0/adc_data_valid]
+  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins avg12_0/data_valid_out] [get_bd_pins group_2/adc_data_valid] [get_bd_pins group_3/adc_data_valid] [get_bd_pins group_1/adc_data_valid] [get_bd_pins group_0/adc_data_valid]
+  connect_bd_net -net avg12_data_out [get_bd_pins avg12_0/data_out] [get_bd_pins group_1/adc_data] [get_bd_pins group_0/adc_data] [get_bd_pins group_2/adc_data] [get_bd_pins group_3/adc_data]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins group_2/s_axi_lite_aclk] [get_bd_pins group_3/s_axi_lite_aclk] [get_bd_pins group_1/s_axi_lite_aclk] [get_bd_pins group_0/s_axi_lite_aclk]
 
   # Restore current instance
