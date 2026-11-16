@@ -598,7 +598,13 @@ class GwReader:
             return tstart,tstop
         else:
             return tstart,tstop,tstamps,positions.astype(int), internal_positions.astype(int)
-                
+
+    def _check_compressed(self):
+        for tone in self.get_tones_labels():
+            if len(self.get_tones_loc(tone)) > 1:
+                return False
+        else:
+            return True                        
 
 
     def _check_consistency(self,d1,d2,keys):
@@ -778,8 +784,163 @@ class GwReader:
         
         
         
+    def get_tones_info(self,Tnames=None):
+        '''
+        Return the metadata of the selected tones stored in the `.gw` file.
+
+        The metadata are read from `/tones/<resonance_label>/<dataset_index>/info`.
+        This method works only on compressed files (i.e. one dataset index
+        per resonance label, see `GwWriter.merge_and_compress`).
+
+        Parameters
+        ----------
+        Tnames : list of string, string or None
+            Resonance names (e.g. ["3A","3B"]). A single string is also accepted.
+            If None, all the tones in the file are read. Default = None.
+
+        Return
+        ----------
+        out : dict of dict
+            Dictionary with the resonance labels (e.g. 3A, 3B...) as keys.
+            Each value is the metadata dictionary of that resonance
+            (e.g. LO_frequency, fs...).
+            Tones not present in the file are skipped.
+            Returns None if the file is not compressed.
+        '''
+
+        if self._check_compressed() is False:
+            print("File not compressed: run GwWriter.merge_and_compress first")
+            return
+
+        if Tnames is None:
+            Tnames = self.get_tones_labels()
+        elif type(Tnames) == str:
+            Tnames = [Tnames]
+
+        out = {}
+        with h5py.File(self._file,'r') as f:
+            for tone in Tnames:
+                if tone not in f["tones"].keys():
+                    print(tone,"not present")
+                    continue
+                loc = list(f["tones"][tone].keys())[0]      # only one dataset index (compressed file)
+                out[tone] = self.__convert_to_dict(f["tones"][tone][loc]["info"])
+        return out        
         
         
-        
-        
-        
+    def _get_tone_data(self,Tname,variable=["i"],dtype=None):
+        '''
+        Return the flattened data of one tone, with the corresponding timestamps.
+        Used by `get_data`: see it for the full documentation.
+
+        Parameters
+        ----------
+        Tname : string
+            Resonance name (e.g. 3A, 3B...).
+        variable : list of string
+            Keys stored under `/data` to return. Default = ["i"].
+        dtype : numpy dtype or None
+            dtype to cast the returned i/q arrays after conversion.
+            If None, keep numpy default type. Default = None.
+
+        Return
+        ----------
+        dic : dict or None
+            Dictionary with "t" and the selected variables.
+            None if the tone (or all the variables) are not present.
+        '''
+
+        with h5py.File(self._file,'r') as f:
+            if Tname not in f["tones"].keys():
+                print(Tname,"not present")
+                return
+            loc = list(f["tones"][Tname].keys())[0]      # only one dataset index (compressed file)
+            info = self.__convert_to_dict(f["tones"][Tname][loc]["info"])
+            data_group = f["tones"][Tname][loc]["data"]
+
+            if self._conversion is not None:
+                conversion = self._conversion
+            else:
+                conversion = self._cal_func(info["LO_frequency"])
+
+            t0 = np.atleast_1d(np.array(data_group["t0"]))
+            dic = {}
+            for key in variable:
+                if key not in data_group.keys():
+                    print(key,"not present in",Tname)
+                    continue
+                value = np.atleast_2d(np.array(data_group[key]))     # (N, nsamples), also for a single acquisition
+                if key in ["i","q"]:
+                    value = (value*conversion).astype(dtype,copy=False)
+                dic[key] = value.flatten()
+
+            if len(dic) == 0:
+                return
+
+            # timestamp of every sample: t0 of the acquisition + n/fs
+            t = np.arange(0,value.shape[1])*(1/info["fs"])
+            dic["t"] = (t0[:,None] + t[None,:]).flatten()
+        return dic
+
+
+    def get_data(self,Tnames=None,variable="i",dtype=None,max_workers=1):
+        '''
+        Return the flattened data of the selected tones, with the corresponding timestamps.
+
+        For each tone, the selected variables are read from
+        `/tones/<resonance_label>/<dataset_index>/data` and flattened
+        (acquisitions are concatenated one after the other), and the
+        timestamp of every sample is built as `t0 + n/fs` (see `get_IQ`).
+        This method works only on compressed files (i.e. one dataset index
+        per resonance label, see `GwWriter.merge_and_compress`).
+
+        Parameters
+        ----------
+        Tnames : list of string, string or None
+            Resonance names (e.g. ["3A","3B"]). A single string is also accepted.
+            If None, all the tones in the file are read. Default = None.
+        variable : string or list of string
+            Keys stored under `/data` to return (e.g. "i", "q", "z" or ["i","q"]).
+            i and q are converted from ADC units to volts (see `set_conversion`
+            and `set_cal_func`); any other key is returned as stored.
+            Default = "i".
+        dtype : numpy dtype or None
+            dtype to cast the returned i/q arrays after conversion.
+            If None, keep numpy default type. Default = None.
+        max_workers : int or None
+            Number of processes used to read the tones in parallel.
+            If 1, the tones are read one after the other (no new processes).
+            If None, the number of CPUs of the machine is used. Default = 1.
+
+        Return
+        ----------
+        out : dict of dict
+            Dictionary with the resonance labels (e.g. 3A, 3B...) as keys.
+            Each value is a dictionary with:
+            - "t" : ndarray, timestamp (epoch seconds) of every sample
+            - <variable> : ndarray, flattened data, same length as "t"
+            Tones or variables not present in the file are skipped.
+            Returns None if the file is not compressed.
+        '''
+
+        if self._check_compressed() is False:
+            print("File not compressed: run GwWriter.merge_and_compress first")
+            return
+
+        if Tnames is None:
+            Tnames = self.get_tones_labels()
+        elif type(Tnames) == str:
+            Tnames = [Tnames]
+
+        if type(variable) == str:
+            variable = [variable]
+
+        func = partial(self._get_tone_data, variable=variable, dtype=dtype)
+        if max_workers == 1:
+            results = [func(tone) for tone in Tnames]
+        else:
+            with ProcessPoolExecutor(max_workers=max_workers) as ex:
+                results = list(ex.map(func, Tnames))
+
+        out = {tone: dic for tone, dic in zip(Tnames, results) if dic is not None}
+        return out
