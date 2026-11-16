@@ -30,8 +30,10 @@ architecture arch of multiplier is
 
   signal sig_zlast : std_logic_vector(len_c - 1 downto 0) := (others => '0');
 
-  constant pattern : signed(len_c - 1 downto 0)         := (others => '0');
-  constant c       : signed(len_a + len_b - 1 downto 0) := (len_c - 2 downto 0 => '1', others => '0');
+  -- number of product bits dropped by the output cut
+  constant cut     : integer                            := len_a + len_b - len_c;
+  constant pattern : signed(cut - 1 downto 0)           := (others => '0');
+  constant c       : signed(len_a + len_b - 1 downto 0) := shift_left(to_signed(1, len_a + len_b), cut - 1) - 1;
 
 begin
 
@@ -47,7 +49,7 @@ begin
       z1 <= ar * br;
 
       multaddr <= resize(multadd, multaddr'length) sla shift;
-      if (multadd(len_c - 1 downto 0) = pattern) then
+      if (multadd(cut - 1 downto 0) = pattern) then
         pattern_detect <= true;
       else
         pattern_detect <= false;
