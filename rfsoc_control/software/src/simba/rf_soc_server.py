@@ -13,12 +13,17 @@ from pynq import allocate
 
 import numpy as np
 from config_utils import FIR_DEC, FS, load_lo_config, write_lo_config
-from firmware_utils import configure_lockin, load_overlay, read_counters, start_clocks
+from firmware_utils import bring_up, configure_lockin, read_counters, wait_dma
 
 N_ITER = 10
 SAMPLES_PER_ROW = 256 * N_ITER  # 256 samples per DMA transfer
 BLOCK_TICKS = 256 * FIR_DEC  # clock ticks per counter block (256 samples)
 ROW_TICKS = SAMPLES_PER_ROW * FIR_DEC  # clock ticks per row
+
+EXT_CLK = True  # LMK locked to the external reference
+DMA_TIMEOUT_S = 10  # one transfer lasts about 1 s (plus up to 1 s waiting for the PPS)
+HW_READY_TIMEOUT_S = 300  # max wait for a (re)load of the firmware before an acquisition
+HW_RETRY_PAUSE_S = 30  # pause before trying again when the bring-up failed
 
 FW_VERSION = 4  # 3 ADC activated, 4 lockins per group; v4: dump handshake fix, 12-sample ADC average
 IP_ADDR = "212.189.204.163"
@@ -49,6 +54,7 @@ class RFSoCServer:
         self.save_queue = queue.Queue()
         self.reload_event = threading.Event()
         self.reload_done = threading.Event()
+        self.hw_ready = threading.Event()  # set while a verified firmware is loaded
         self.acq_thread = None
 
         # Hardware state
@@ -137,8 +143,9 @@ class RFSoCServer:
                         logging.error(f"[ACQ] Error during shutdown: {e}")
 
                     self.reload_done.clear()
+                    self.hw_ready.clear()
                     self.reload_event.set()
-                    self.reload_done.wait(timeout=30)
+                    self.reload_done.wait(timeout=HW_READY_TIMEOUT_S)
                     continue  # Return to the while without going idle
                 break  # If max_retries reached we break
 
@@ -147,6 +154,7 @@ class RFSoCServer:
         )
         self._remove_all_files()
         logging.info("[ACQ] Supervisor exiting")
+        self.hw_ready.clear()
         self.reload_event.set()  # If acq was stopped, reload firmware for safety
 
     def _hardware_shutdown(self):
@@ -178,7 +186,9 @@ class RFSoCServer:
     def _acquisition_loop(self):
         """Allocate buffers, start acq and loop over buffers/dma saving into queue."""
         logging.info("[SERVER] Starting function")
-        start_clocks(ext_clk=True)
+        # Clocks are programmed by bring_up() before the bitstream is loaded
+        if not self.hw_ready.wait(timeout=HW_READY_TIMEOUT_S):
+            raise RuntimeError("Firmware not ready")
         bufs, dmas = self._allocate_dma_buffers()
         self.dmas = dmas
 
@@ -276,9 +286,8 @@ class RFSoCServer:
             dma.transfer(bufs[idx][buffer_idx])
 
     def _wait_dma(self, dmas):
-        """Wait for all dma transfers."""
-        for dma in dmas:
-            dma.wait()
+        """Wait for all dma transfers, raise if the data stops arriving."""
+        wait_dma(dmas, DMA_TIMEOUT_S)
 
     def _extract_iq(self, buffer, lane):
         """Extract IQ data (2x32 bit) for one lock-in lane from a group buffer.
@@ -510,14 +519,30 @@ class RFSoCServer:
                 finally:
                     self.save_queue.task_done()
 
+    def _load_hardware(self, verbose=False):
+        """Load and verify the firmware, trying again until it works."""
+        self.hw_ready.clear()
+        while True:
+            try:
+                (
+                    self.overlay,
+                    self.controller,
+                    self.lockins,
+                    self.sync,
+                    self.dma_groups,
+                ) = bring_up(ext_clk=EXT_CLK, verbose=verbose)
+                break
+            except Exception as e:
+                logging.critical(f"[HW] {e}. New try in {HW_RETRY_PAUSE_S} s")
+                sleep(HW_RETRY_PAUSE_S)
+        self.group_size = len(self.lockins) // len(self.dma_groups)
+        self.dmas = None
+        self.hw_ready.set()
+
     def start(self):
         """Manage subthreads and loading the overlay."""
         logging.info("[SERVER] Starting function")
-        self.overlay, self.controller, self.lockins, self.sync, self.dma_groups = (
-            load_overlay(verbose=True)
-        )
-        self.group_size = len(self.lockins) // len(self.dma_groups)
-        self.dmas = None
+        self._load_hardware(verbose=True)
         logging.info("[ACQ] Overlay loaded")
 
         # threading.Thread(target=self.start_data_server, daemon=True).start()
@@ -528,16 +553,8 @@ class RFSoCServer:
             if self.reload_event.is_set():
                 logging.info("[MAIN] Reloading overlay")
 
-                (
-                    self.overlay,
-                    self.controller,
-                    self.lockins,
-                    self.sync,
-                    self.dma_groups,
-                ) = load_overlay()
-                self.group_size = len(self.lockins) // len(self.dma_groups)
+                self._load_hardware()
                 load_lo_config(self, FW_VERSION)
-                self.dmas = None
 
                 self.reload_event.clear()
                 self.reload_done.set()
