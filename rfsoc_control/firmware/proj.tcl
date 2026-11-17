@@ -10,6 +10,17 @@ if {[info exists ::origin_dir_loc]} {
 
 set proj_name "top"
 
+# Board files: $RFSOC4X2_BOARD_FILES, or the default BSP location if it exists.
+# Not needed when the board files are installed in Vivado itself.
+if {[info exists ::env(RFSOC4X2_BOARD_FILES)]} {
+    set board_repo $::env(RFSOC4X2_BOARD_FILES)
+} else {
+    set board_repo [file join $::env(HOME) .Vivado RFSoC4x2-BSP board_files]
+}
+if {[file isdirectory $board_repo]} {
+    set_param board.repoPaths [list $board_repo]
+}
+
 
 ###########################################################################
 # Create project
@@ -63,6 +74,9 @@ foreach ext {v sv vhd vh} {
 if {[llength $src_files] > 0} {
     add_files -norecurse $src_files
 }
+
+# These two need VHDL-2008 (sla on signed, non-literal array bound)
+set_property file_type {VHDL 2008} [get_files {*/src/multiplier.vhd */src/interpolator.vhd}]
 
 
 ###########################################################################

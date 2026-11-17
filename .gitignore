@@ -4,3 +4,14 @@ notebooks/.ipynb_checkpoints/
 /venv
 top/
 .Xil/
+
+# Vivado output written next to the build scripts
+rfsoc_control/firmware/clockInfo.txt
+vivado*.log
+vivado*.jou
+
+# local data and repair-check output
+test/*.gw
+test/*.gw.bak
+test/*.gw.fixlog.json
+test/gw_fix_check/
