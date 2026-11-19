@@ -1,4 +1,5 @@
 build/
+__pycache__/
 notebooks/.ipynb_checkpoints/
 /NewCrystals
 /venv
@@ -15,3 +16,9 @@ test/*.gw
 test/*.gw.bak
 test/*.gw.fixlog.json
 test/gw_fix_check/
+
+# local Claude Code instructions
+CLAUDE.md
+
+# local simulation output, not committed
+tmp/
