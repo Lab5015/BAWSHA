@@ -21,11 +21,10 @@ entity lockin_wrapper is
     config_port : in STD_LOGIC;
     dds_output : out STD_LOGIC_VECTOR ( 15 downto 0 );
     dds_valid : out STD_LOGIC;
-    dec_factor : in STD_LOGIC_VECTOR ( 23 downto 0 );
     init_freq : in STD_LOGIC_VECTOR ( 31 downto 0 );
     init_phase : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    output_I : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    output_Q : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    output_I : out STD_LOGIC_VECTOR ( 23 downto 0 );
+    output_Q : out STD_LOGIC_VECTOR ( 23 downto 0 );
     output_valid : out STD_LOGIC;
     reset : in STD_LOGIC;
     run : in STD_LOGIC
@@ -42,11 +41,10 @@ architecture STRUCTURE of lockin_wrapper is
     init_phase : in STD_LOGIC_VECTOR ( 31 downto 0 );
     adc_data : in STD_LOGIC_VECTOR ( 15 downto 0 );
     adc_data_valid : in STD_LOGIC;
-    output_I : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    output_Q : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    output_I : out STD_LOGIC_VECTOR ( 23 downto 0 );
+    output_Q : out STD_LOGIC_VECTOR ( 23 downto 0 );
     output_valid : out STD_LOGIC;
     run : in STD_LOGIC;
-    dec_factor : in STD_LOGIC_VECTOR ( 23 downto 0 );
     dds_output : out STD_LOGIC_VECTOR ( 15 downto 0 );
     dds_valid : out STD_LOGIC;
     aresetn : in STD_LOGIC
@@ -62,11 +60,10 @@ lockin_i: component lockin
       config_port => config_port,
       dds_output(15 downto 0) => dds_output(15 downto 0),
       dds_valid => dds_valid,
-      dec_factor(23 downto 0) => dec_factor(23 downto 0),
       init_freq(31 downto 0) => init_freq(31 downto 0),
       init_phase(31 downto 0) => init_phase(31 downto 0),
-      output_I(31 downto 0) => output_I(31 downto 0),
-      output_Q(31 downto 0) => output_Q(31 downto 0),
+      output_I(23 downto 0) => output_I(23 downto 0),
+      output_Q(23 downto 0) => output_Q(23 downto 0),
       output_valid => output_valid,
       reset => reset,
       run => run

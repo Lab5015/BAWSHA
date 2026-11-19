@@ -1,7 +1,8 @@
 > Migrated from the SimBa repository (2026-11-16). Paths in this note are the old SimBa ones.
 > In BAWSHA: `lockin/main.tcl` is `bd/main.tcl`, `lockin/lockin.tcl` is `bd/lockin.tcl`,
-> `patch_*.tcl` are in this `docs/` folder. `patch_main_bd.tcl` is already folded into `bd/main.tcl`.
-> `patch_lockin_bd.tcl` (DSP reduction) is unverified and not applied.
+> The `patch_*.tcl` scripts were removed with firmware v5 (they patch older projects and break the v5 block
+> designs). `patch_main_bd.tcl` is folded into `bd/main.tcl`, `patch_lockin_bd.tcl` is replaced by section v5 A.
+> Both are still in the git history.
 
 # Firmware stability changes (branch `software`, firmware v3)
 
@@ -72,3 +73,57 @@ so it added 2^15 instead of 2^17: a bias of about -0.37 LSB at the mixer output,
 DC offset in every I and Q (seen in all 40 tones of the old data). Now `cut = len_a+len_b-len_c` is used for the
 constant and the tie pattern. GHDL `test/tbs/tb_multiplier.vhd`: exact round-half-even, mean error +0.001 LSB.
 Expect I/Q means near 0 (plus real ADC offset effects) in new data; same fix copied to BAWSHA `rfsoc_control/firmware/src`.
+
+## Firmware v5: fewer DSPs per lock-in, 48 lock-ins (2026-11-17, `FW_VERSION` = 5)
+Goal: the 40 lock-ins of v4 used 3763 of 4272 DSPs (94 per lock-in). The late FIR stages run at low rates but each
+had its own DSPs, and stages fed with 32-bit data cost 3 DSPs per path where 22 bits fit one 27x18 multiplier.
+
+**A. Narrower data (`bd/lockin.tcl`, `bd/chain.tcl`)**
+- `fir_x2` and `fir_x5_1` output 22 bits with convergent rounding (was 32 bits). `fir_x3`, `fir_x5` and `fir_x5_2`
+  take 22-bit data. `fir_x3` coefficients are halved (18 bit, round half away from zero).
+- Output scale is unchanged (the FIR keeps the top bits of its full-precision result, so a 22-bit input simply
+  drops 10 fewer LSBs). Simulated against v4 (`tmp/dsp_patch_sim`, not committed): same noise floor and SNR,
+  gain -13 ppm, DC offset change about 0.1 count, alias rejection at LO +- 20.48 MHz -114 -> -102 dB.
+  Truncating instead of rounding (the old `docs/patch_lockin_bd.tcl`) gave a -30 count DC offset.
+  That patch script was removed (see the note at the top).
+
+**B. Late stages shared per group (`src/tdm_interleave.vhd`, `src/tdm_pack.vhd`, `src/chain_wrapper.vhd`, `bd/chain.tcl`)**
+- `lockin_wrapper` now ends at `fir_x5` (24-bit I/Q at 4.096 MS/s, no `dec_factor` port).
+- Per group, `tdm_interleave` turns the 4 x {I, Q} into one 8-channel TDM stream for `fir_x5_1` .. `fir_compiler_x5_2`
+  (FIR Compiler with `Number_Channels` 8, same coefficients and rounding as v4). `tdm_pack` rebuilds the 256-bit word
+  (lock-in k I at bits 64k+31..64k, Q at 64k+63..64k+32, as before) and `decimate` (dec_factor of lane 0) follows.
+  Everything after (stop_if_fifo_full, fifo, dump, DMA) is unchanged.
+- `chain` outputs `overflow` (a set arrived while the previous was still being sent) and `sync_error` (tlast not on
+  channel 7). Both are sticky and currently unconnected (debug only, they should never be set).
+- `axi_control_k/test_reg` now shows lane k's I word of the chain output (was lockin_k output_I).
+
+**48 lock-ins (`bd/main.tcl`, parametric rewrite)**
+- 3 ADC x 4 groups x 4 lock-ins. `adc_226_0` gains `group_2` and `group_3`, counters `counter_10/11`.
+- New addresses: group 10 at 0xA0320000 (controllers) / 0xA0360000 (DMA), group 11 at 0xA0370000 / 0xA03B0000.
+  Old addresses are unchanged. The AXI-lite interconnect now uses all 64 masters.
+- Software finds the lock-ins by name, so no change besides `FW_VERSION`.
+
+**Tests**
+- GHDL: `tb_tdm_interleave` (592 bursts, overload and reset cases, 0 errors), `tb_tdm_pack` (880 words, 160 injected
+  framing errors detected, 0 errors).
+- xsim `test/tbs/tb_chain.vhd` (chain BD, 19.6k input sets, 8 different channels incl. a full-scale one), compared
+  bit-exact with an integer model: fir_x5_1 .. fir_x5_4 exact on all channels (3915 / 782 / 155 / 30 outputs per
+  channel), shifts as predicted (20, 10, 20, 20), tlast always on channel 7. The last two stages need >9M clocks per
+  20 outputs (xsim runs a few hundred clocks/s), so they were checked in a separate BD with the same FIR cells fed
+  faster (only Sample_Frequency raised): fir_compiler_x5 500 and fir_compiler_x5_2 100 outputs per channel, and 100
+  packed 256-bit words after tdm_pack + decimate, 0 mismatches, no wrap with a full-scale input.
+- Vivado: main BD with 48 lock-ins validates. OOC synthesis DSPs: front end 32 per lock-in (iq_mult 4, x2 6, x3 16,
+  x5 6, was 58), chain 18 per group (was 36 per lock-in). Total about 1752 (41%) vs 3763 for 40 lock-ins in v4.
+- Full build (Vivado 2023.2, 2026-11-18): timing met (WNS +0.985 ns, WHS +0.009 ns), all nets routed, no DRC errors.
+  Utilization v4 (40) -> v5 (48): DSP 3763 -> 1755, LUT 252k -> 185k, FF 511k -> 381k, BRAM 460 -> 330,
+  URAM 40 -> 48. Not yet tested on hardware.
+
+**Server: first transfer dropped (`rf_soc_server.py`, applies to v4 too)**
+The FIRs only get samples while `run` is high (the DDS valid gates the mixer) and the soft reset does not clear
+them. So every acquisition started with about 0.5 s of the previous one (old LO) still leaving the filters
+(115 taps at 262 Hz in the last stage plus the earlier stages). After a retune this can show a line of the
+previous band at the new frequency, and not on a repeat. The server now drops the first DMA transfer
+(256 samples, about 1 s) after `start`. Row timing is unchanged because it comes from the hardware counter.
+
+**Revert:** check out `bd/lockin.tcl`, `bd/main.tcl`, `src/lockin_wrapper.vhd` and `proj.tcl` from before this change,
+drop `bd/chain.tcl` and the 3 new `src` files, set `FW_VERSION` back to 4.

@@ -25,7 +25,7 @@ DMA_TIMEOUT_S = 10  # one transfer lasts about 1 s (plus up to 1 s waiting for t
 HW_READY_TIMEOUT_S = 300  # max wait for a (re)load of the firmware before an acquisition
 HW_RETRY_PAUSE_S = 30  # pause before trying again when the bring-up failed
 
-FW_VERSION = 4  # 3 ADC activated, 4 lockins per group; v4: dump handshake fix, 12-sample ADC average
+FW_VERSION = 5  # 3 ADC x 4 groups x 4 lockins = 48; v5: late FIR stages shared per group
 IP_ADDR = "212.189.204.163"
 
 DATA_DIR = "/bauscia-nas/data/rfsoc_savedir/"
@@ -263,7 +263,7 @@ class RFSoCServer:
         """Allocate contiguous PYNQ ping-pong buffers, one pair per active group.
 
         Lock-ins are packed `self.group_size` per 256-bit DMA channel in
-        hardware. In firmware v4 all lanes of a group take dec_factor from
+        hardware. Since firmware v4 all lanes of a group take dec_factor from
         lane 0, so lane 0 must always be configured (it is, as frequencies
         fill the lanes in order). All lanes of a group always produce a new
         sample in lockstep, so a

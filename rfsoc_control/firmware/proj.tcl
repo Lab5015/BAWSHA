@@ -87,6 +87,10 @@ foreach f [glob -nocomplain -directory "$origin_dir/constraints" *.xdc] {
     add_files -fileset constrs_1 $f
 }
 
+# ooc.xdc constrains the clk port of lockin_wrapper, which only exists when
+# that module is synthesized out of context: keep it out of the top-level runs
+set_property USED_IN {synthesis implementation out_of_context} [get_files */constraints/ooc.xdc]
+
 
 ###########################################################################
 # Create lockin Block Design
@@ -95,6 +99,15 @@ foreach f [glob -nocomplain -directory "$origin_dir/constraints" *.xdc] {
 puts "Creating lockin block design..."
 
 source [file normalize "$origin_dir/bd/lockin.tcl"]
+
+
+###########################################################################
+# Create chain Block Design (FIR stages shared by the 4 lock-ins of a group)
+###########################################################################
+
+puts "Creating chain block design..."
+
+source [file normalize "$origin_dir/bd/chain.tcl"]
 
 
 ###########################################################################

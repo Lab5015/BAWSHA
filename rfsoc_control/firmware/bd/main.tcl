@@ -46,7 +46,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# lockin_wrapper, lockin_wrapper, lockin_wrapper, lockin_wrapper, sing_counter_mod, dump, lockin_wrapper, lockin_wrapper, lockin_wrapper, lockin_wrapper, sing_counter_mod, dump, lockin_wrapper, lockin_wrapper, lockin_wrapper, lockin_wrapper, sing_counter_mod, dump, lockin_wrapper, lockin_wrapper, lockin_wrapper, lockin_wrapper, sing_counter_mod, dump, lockin_wrapper, lockin_wrapper, lockin_wrapper, lockin_wrapper, sing_counter_mod, dump, lockin_wrapper, lockin_wrapper, lockin_wrapper, lockin_wrapper, sing_counter_mod, dump, lockin_wrapper, lockin_wrapper, lockin_wrapper, lockin_wrapper, sing_counter_mod, dump, lockin_wrapper, lockin_wrapper, lockin_wrapper, lockin_wrapper, sing_counter_mod, dump, lockin_wrapper, lockin_wrapper, lockin_wrapper, lockin_wrapper, sing_counter_mod, dump, lockin_wrapper, lockin_wrapper, lockin_wrapper, lockin_wrapper, sing_counter_mod, dump
+# lockin_wrapper, chain_wrapper, sing_counter_mod, dump, avg12
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -145,7 +145,6 @@ xilinx.com:ip:clk_wiz:6.0\
 user.org:user:external_start_sync:1.0\
 xilinx.com:ip:smartconnect:1.0\
 user.org:user:counters:1.1\
-xilinx.com:ip:xlconstant:1.1\
 xilinx.com:ip:xlslice:1.0\
 user.org:user:controller_lockin:1.0\
 xilinx.com:ip:xlconcat:2.1\
@@ -188,67 +187,9 @@ set bCheckModules 1
 if { $bCheckModules == 1 } {
    set list_check_mods "\ 
 lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
+chain_wrapper\
 sing_counter_mod\
 dump\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-sing_counter_mod\
-dump\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-sing_counter_mod\
-dump\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-sing_counter_mod\
-dump\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-sing_counter_mod\
-dump\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-sing_counter_mod\
-dump\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-sing_counter_mod\
-dump\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-sing_counter_mod\
-dump\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-sing_counter_mod\
-dump\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-lockin_wrapper\
-sing_counter_mod\
-dump\
-avg12\
-avg12\
 avg12\
 "
 
@@ -277,54 +218,81 @@ if { $bCheckIPsPassed != 1 } {
 # DESIGN PROCs
 ##################################################################
 
+# Lock-ins per group is fixed by chain_wrapper (8 x 24-bit TDM input)
+variable lockins_per_group 4
+variable groups_per_adc 4
 
-# Hierarchical cell: group_1
-proc create_hier_cell_group_1_2 { parentCell nameHier } {
-
-  variable script_folder
+# Create hierarchy <nameHier> inside <parentCell> and make it the current instance.
+# Returns {oldCurInst hier_obj}: the caller restores oldCurInst when done.
+proc enter_new_hier { parentCell nameHier } {
 
   if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_group_1_2() - Empty argument(s)!"}
-     return
+     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "enter_new_hier() - Empty argument(s)!"}
+     return -code error "Empty argument(s)"
   }
 
   # Get object for parentCell
   set parentObj [get_bd_cells $parentCell]
   if { $parentObj == "" } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
+     return -code error "Unable to find parent cell <$parentCell>"
   }
 
   # Make sure parentObj is hier blk
   set parentType [get_property TYPE $parentObj]
   if { $parentType ne "hier" } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
+     return -code error "Parent <$parentObj> is not a hierarchy"
   }
 
-  # Save current instance; Restore later
   set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
   current_bd_instance $parentObj
 
-  # Create cell and set as current instance
   set hier_obj [create_bd_cell -type hier $nameHier]
   current_bd_instance $hier_obj
 
+  return [list $oldCurInst $hier_obj]
+}
+
+# Create a cell from an HDL module reference, aborting the script if the
+# module sources are missing (a half-built design is worse than none).
+proc create_module_cell { block_name block_cell_name } {
+  if { [catch {set cell [create_bd_cell -type module -reference $block_name $block_cell_name]} errmsg] || $cell eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return -code error "Unable to add referenced block <$block_name>"
+  }
+  return $cell
+}
+
+# Pins <prefix>0/<pin> ... <prefix>(count-1)/<pin> of the current hierarchy,
+# as one get_bd_pins collection
+proc indexed_pins { prefix pin count } {
+  set names {}
+  for {set i 0} {$i < $count} {incr i} {
+    lappend names ${prefix}${i}/${pin}
+  }
+  return [get_bd_pins $names]
+}
+
+# Suffix used by the generated design for the n-th instance: "" for 0, "N" otherwise
+proc index_suffix { n } {
+  return [expr {$n == 0 ? "" : $n}]
+}
+
+# Hierarchical cell: group (4 lock-ins sharing one TDM chain, FIFO and DMA)
+proc create_group { parentCell nameHier } {
+
+  variable lockins_per_group
+  set n $lockins_per_group
+
+  lassign [enter_new_hier $parentCell $nameHier] oldCurInst hier_obj
+
   # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
+  for {set k 0} {$k < $n} {incr k} {
+    create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_CTRL$k
+  }
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
 
   # Create pins
   create_bd_pin -dir I -type clk clk
@@ -338,120 +306,33 @@ proc create_hier_cell_group_1_2 { parentCell nameHier } {
   create_bd_pin -dir O -from 63 -to 0 valid_counter_port
   create_bd_pin -dir I -from 15 -to 0 adc_data
 
-  # Create instance: axi_control_0, and set properties
-  set axi_control_0 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_0 ]
+  # Create instances: lock-ins, their controllers, and the slices that expose
+  # each lane's 64-bit word of the chain output on the controller test_reg
+  for {set k 0} {$k < $n} {incr k} {
+    create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_$k
 
-  # Create instance: lockin_0, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_0
-  if { [catch {set lockin_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_226_0/group_1/lockin_0/reset]
+    create_module_cell lockin_wrapper lockin_$k
+    set_property CONFIG.POLARITY {ACTIVE_HIGH} [get_bd_pins lockin_$k/reset]
 
-  # Create instance: concat_0, and set properties
-  set concat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_0 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_0
+    set test_slice [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 test_slice_$k ]
+    set_property -dict [list \
+      CONFIG.DIN_WIDTH {256} \
+      CONFIG.DIN_FROM [expr {64 * $k + 31}] \
+      CONFIG.DIN_TO [expr {64 * $k}] \
+    ] $test_slice
+  }
 
+  # Create instance: tdm_concat, {I, Q} of every lock-in in lane order (In0 = lockin_0 I)
+  set tdm_concat [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 tdm_concat ]
+  set concat_config [list CONFIG.NUM_PORTS [expr {2 * $n}]]
+  for {set i 0} {$i < 2 * $n} {incr i} {
+    lappend concat_config CONFIG.IN${i}_WIDTH {24}
+  }
+  set_property -dict $concat_config $tdm_concat
 
-  # Create instance: lockin_1, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_1
-  if { [catch {set lockin_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_226_0/group_1/lockin_1/reset]
-
-  # Create instance: axi_control_1, and set properties
-  set axi_control_1 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_1 ]
-
-  # Create instance: concat_1, and set properties
-  set concat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_1 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_1
-
-
-  # Create instance: lockin_2, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_2
-  if { [catch {set lockin_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_2 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_226_0/group_1/lockin_2/reset]
-
-  # Create instance: axi_control_2, and set properties
-  set axi_control_2 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_2 ]
-
-  # Create instance: concat_2, and set properties
-  set concat_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_2 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_2
-
-
-  # Create instance: lockin_3, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_3
-  if { [catch {set lockin_3 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_3 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_226_0/group_1/lockin_3/reset]
-
-  # Create instance: axi_control_3, and set properties
-  set axi_control_3 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_3 ]
-
-  # Create instance: concat_3, and set properties
-  set concat_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_3 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_3
-
-
-  # Create instance: concat, and set properties
-  set concat [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {64} \
-    CONFIG.IN1_WIDTH {64} \
-    CONFIG.IN2_WIDTH {64} \
-    CONFIG.IN3_WIDTH {64} \
-    CONFIG.NUM_PORTS {4} \
-  ] $concat
-
+  # Create instance: chain (decimation and 256-bit packing of the TDM stream)
+  create_module_cell chain_wrapper chain
+  set_property CONFIG.POLARITY {ACTIVE_HIGH} [get_bd_pins chain/reset]
 
   # Create instance: stop_if_fifo_full, and set properties
   set stop_if_fifo_full [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 stop_if_fifo_full ]
@@ -463,18 +344,9 @@ proc create_hier_cell_group_1_2 { parentCell nameHier } {
     CONFIG.S_TDATA_NUM_BYTES {32} \
   ] $stop_if_fifo_full
 
+  # Create instance: count_dropped
+  create_module_cell sing_counter_mod count_dropped
 
-  # Create instance: count_dropped, and set properties
-  set block_name sing_counter_mod
-  set block_cell_name count_dropped
-  if { [catch {set count_dropped [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $count_dropped eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
   # Create instance: fifo, and set properties
   set fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 fifo ]
   set_property -dict [list \
@@ -485,18 +357,9 @@ proc create_hier_cell_group_1_2 { parentCell nameHier } {
     CONFIG.TDATA_NUM_BYTES {32} \
   ] $fifo
 
+  # Create instance: dump
+  create_module_cell dump dump
 
-  # Create instance: dump, and set properties
-  set block_name dump
-  set block_cell_name dump
-  if { [catch {set dump [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $dump eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
   # Create instance: axis_subset_converter, and set properties
   set axis_subset_converter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 axis_subset_converter ]
   set_property -dict [list \
@@ -507,7 +370,6 @@ proc create_hier_cell_group_1_2 { parentCell nameHier } {
     CONFIG.S_HAS_TREADY {1} \
     CONFIG.S_TDATA_NUM_BYTES {32} \
   ] $axis_subset_converter
-
 
   # Create instance: dma, and set properties
   set dma [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 dma ]
@@ -521,13 +383,11 @@ proc create_hier_cell_group_1_2 { parentCell nameHier } {
     CONFIG.c_sg_length_width {26} \
   ] $dma
 
-
   # Create interface connections
+  for {set k 0} {$k < $n} {incr k} {
+    connect_bd_intf_net -intf_net S_AXI_CTRL${k}_1 [get_bd_intf_pins S_AXI_CTRL$k] [get_bd_intf_pins axi_control_$k/S00_AXI]
+  }
   connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins dma/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE]
-  connect_bd_intf_net -intf_net S00_AXI1_1 [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins axi_control_0/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI2_1 [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins axi_control_3/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins axi_control_2/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_control_1/S00_AXI]
   connect_bd_intf_net -intf_net axis_subset_converter_M_AXIS [get_bd_intf_pins axis_subset_converter/M_AXIS] [get_bd_intf_pins dma/S_AXIS_S2MM]
   connect_bd_intf_net -intf_net count_dropped_m_axis [get_bd_intf_pins count_dropped/m_axis] [get_bd_intf_pins fifo/S_AXIS]
   connect_bd_intf_net -intf_net dma_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins dma/M_AXI_S2MM]
@@ -535,2838 +395,58 @@ proc create_hier_cell_group_1_2 { parentCell nameHier } {
   connect_bd_intf_net -intf_net fifo_M_AXIS [get_bd_intf_pins fifo/M_AXIS] [get_bd_intf_pins dump/s_axi]
   connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
 
-  # Create port connections
-  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
-  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
-  connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
-  connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_2 [get_bd_pins axi_control_2/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_3 [get_bd_pins axi_control_3/num_tlast]
-  connect_bd_net -net axi_control_phase [get_bd_pins axi_control_0/phase] [get_bd_pins lockin_0/init_phase]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins stop_if_fifo_full/aclk] [get_bd_pins fifo/s_axis_aclk] [get_bd_pins axis_subset_converter/aclk] [get_bd_pins dma/m_axi_s2mm_aclk] [get_bd_pins dump/clk] [get_bd_pins lockin_0/clk] [get_bd_pins lockin_1/clk] [get_bd_pins lockin_2/clk] [get_bd_pins lockin_3/clk] [get_bd_pins count_dropped/clk]
-  connect_bd_net -net concat_0_dout [get_bd_pins concat_0/dout] [get_bd_pins concat/In0]
-  connect_bd_net -net concat_1_dout [get_bd_pins concat_1/dout] [get_bd_pins concat/In1]
-  connect_bd_net -net concat_2_dout [get_bd_pins concat_2/dout] [get_bd_pins concat/In2]
-  connect_bd_net -net concat_3_dout [get_bd_pins concat_3/dout] [get_bd_pins concat/In3]
-  connect_bd_net -net concat_dout [get_bd_pins concat/dout] [get_bd_pins stop_if_fifo_full/s_axis_tdata]
-  connect_bd_net -net controller_lockin_0_frequency [get_bd_pins axi_control_1/frequency] [get_bd_pins lockin_1/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_1 [get_bd_pins axi_control_2/frequency] [get_bd_pins lockin_2/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_2 [get_bd_pins axi_control_3/frequency] [get_bd_pins lockin_3/init_freq]
-  connect_bd_net -net controller_lockin_0_phase [get_bd_pins axi_control_1/phase] [get_bd_pins lockin_1/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_1 [get_bd_pins axi_control_2/phase] [get_bd_pins lockin_2/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_2 [get_bd_pins axi_control_3/phase] [get_bd_pins lockin_3/init_phase]
+  # Create port connections: per lock-in
+  for {set k 0} {$k < $n} {incr k} {
+    connect_bd_net -net axi_control_${k}_frequency [get_bd_pins axi_control_$k/frequency] [get_bd_pins lockin_$k/init_freq]
+    connect_bd_net -net axi_control_${k}_phase [get_bd_pins axi_control_$k/phase] [get_bd_pins lockin_$k/init_phase]
+    connect_bd_net -net lockin_${k}_output_I [get_bd_pins lockin_$k/output_I] [get_bd_pins tdm_concat/In[expr {2 * $k}]]
+    connect_bd_net -net lockin_${k}_output_Q [get_bd_pins lockin_$k/output_Q] [get_bd_pins tdm_concat/In[expr {2 * $k + 1}]]
+    connect_bd_net -net test_slice_${k}_Dout [get_bd_pins test_slice_$k/Dout] [get_bd_pins axi_control_$k/test_reg]
+  }
+
+  # Create port connections: chain
+  # The chain decimates all lanes together with axi_control_0/dec_factor, and
+  # the lanes run in lockstep, so lockin_0 valid marks every TDM word.
+  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins chain/dec_factor]
+  connect_bd_net -net tdm_concat_dout [get_bd_pins tdm_concat/dout] [get_bd_pins chain/in_data]
+  connect_bd_net -net lockin_0_output_valid [get_bd_pins lockin_0/output_valid] [get_bd_pins chain/in_valid]
+  connect_bd_net -net chain_out_data [get_bd_pins chain/out_data] [get_bd_pins stop_if_fifo_full/s_axis_tdata] [indexed_pins test_slice_ Din $n]
+  connect_bd_net -net chain_out_valid [get_bd_pins chain/out_valid] [get_bd_pins stop_if_fifo_full/s_axis_tvalid]
+
+  # Create port connections: shared nets
+  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins stop_if_fifo_full/aclk] [get_bd_pins fifo/s_axis_aclk] [get_bd_pins axis_subset_converter/aclk] [get_bd_pins dma/m_axi_s2mm_aclk] [get_bd_pins dump/clk] [indexed_pins lockin_ clk $n] [get_bd_pins count_dropped/clk] [get_bd_pins chain/clk]
   connect_bd_net -net count_dropped_counter_port [get_bd_pins count_dropped/counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins config_port] [get_bd_pins lockin_0/config_port] [get_bd_pins lockin_1/config_port] [get_bd_pins lockin_2/config_port] [get_bd_pins lockin_3/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins reset] [get_bd_pins lockin_0/reset] [get_bd_pins lockin_1/reset] [get_bd_pins lockin_2/reset] [get_bd_pins lockin_3/reset] [get_bd_pins count_dropped/rst]
-  connect_bd_net -net global_axi_control_0_run [get_bd_pins led_run] [get_bd_pins dump/run] [get_bd_pins lockin_0/run] [get_bd_pins lockin_1/run] [get_bd_pins lockin_2/run] [get_bd_pins lockin_3/run] [get_bd_pins count_dropped/run]
-  connect_bd_net -net lockin_0_output_q [get_bd_pins lockin_0/output_Q] [get_bd_pins concat_0/In1]
-  connect_bd_net -net lockin_output_Q [get_bd_pins lockin_1/output_Q] [get_bd_pins concat_1/In1]
-  connect_bd_net -net lockin_output_i [get_bd_pins lockin_0/output_I] [get_bd_pins concat_0/In0] [get_bd_pins axi_control_0/test_reg]
-  connect_bd_net -net lockin_output_q_1 [get_bd_pins lockin_2/output_Q] [get_bd_pins concat_2/In1]
-  connect_bd_net -net lockin_output_q_2 [get_bd_pins lockin_3/output_Q] [get_bd_pins concat_3/In1]
-  connect_bd_net -net lockin_output_valid3 [get_bd_pins lockin_3/output_valid] [get_bd_pins stop_if_fifo_full/s_axis_tvalid]
-  connect_bd_net -net lockin_wrapper_0_output_i [get_bd_pins lockin_1/output_I] [get_bd_pins concat_1/In0] [get_bd_pins axi_control_1/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_1 [get_bd_pins lockin_2/output_I] [get_bd_pins concat_2/In0] [get_bd_pins axi_control_2/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_2 [get_bd_pins lockin_3/output_I] [get_bd_pins concat_3/In0] [get_bd_pins axi_control_3/test_reg]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins dma/axi_resetn] [get_bd_pins axi_control_0/s00_axi_aresetn] [get_bd_pins axi_control_1/s00_axi_aresetn] [get_bd_pins axi_control_2/s00_axi_aresetn] [get_bd_pins axi_control_3/s00_axi_aresetn]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins stop_if_fifo_full/aresetn] [get_bd_pins fifo/s_axis_aresetn] [get_bd_pins axis_subset_converter/aresetn] [get_bd_pins lockin_0/aresetn] [get_bd_pins lockin_1/aresetn] [get_bd_pins lockin_2/aresetn] [get_bd_pins lockin_3/aresetn]
+  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins config_port] [indexed_pins lockin_ config_port $n] [get_bd_pins chain/config_port]
+  connect_bd_net -net global_axi_control_0_reset [get_bd_pins reset] [indexed_pins lockin_ reset $n] [get_bd_pins count_dropped/rst] [get_bd_pins chain/reset]
+  connect_bd_net -net global_axi_control_0_run [get_bd_pins led_run] [get_bd_pins dump/run] [indexed_pins lockin_ run $n] [get_bd_pins count_dropped/run] [get_bd_pins chain/run]
+  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins dma/axi_resetn] [indexed_pins axi_control_ s00_axi_aresetn $n]
+  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins stop_if_fifo_full/aresetn] [get_bd_pins fifo/s_axis_aresetn] [get_bd_pins axis_subset_converter/aresetn] [indexed_pins lockin_ aresetn $n] [get_bd_pins chain/aresetn]
   connect_bd_net -net stop_if_fifo_full_transfer_dropped [get_bd_pins stop_if_fifo_full/transfer_dropped] [get_bd_pins count_dropped/dropped]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins adc_data] [get_bd_pins lockin_0/adc_data] [get_bd_pins lockin_1/adc_data] [get_bd_pins lockin_2/adc_data] [get_bd_pins lockin_3/adc_data]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins lockin_0/adc_data_valid] [get_bd_pins lockin_1/adc_data_valid] [get_bd_pins lockin_2/adc_data_valid] [get_bd_pins lockin_3/adc_data_valid]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins dma/s_axi_lite_aclk] [get_bd_pins axi_control_0/s00_axi_aclk] [get_bd_pins axi_control_1/s00_axi_aclk] [get_bd_pins axi_control_2/s00_axi_aclk] [get_bd_pins axi_control_3/s00_axi_aclk]
+  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins adc_data] [indexed_pins lockin_ adc_data $n]
+  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [indexed_pins lockin_ adc_data_valid $n]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins dma/s_axi_lite_aclk] [indexed_pins axi_control_ s00_axi_aclk $n]
 
   # Restore current instance
   current_bd_instance $oldCurInst
 }
 
-# Hierarchical cell: group_0
-proc create_hier_cell_group_0_2 { parentCell nameHier } {
+# Hierarchical cell: ADC channel (12-sample average feeding 4 groups)
+proc create_adc { parentCell nameHier } {
 
-  variable script_folder
+  variable lockins_per_group
+  variable groups_per_adc
+  set ng $groups_per_adc
 
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_group_0_2() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
+  lassign [enter_new_hier $parentCell $nameHier] oldCurInst hier_obj
 
   # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk
-  create_bd_pin -dir I adc_data_valid
-  create_bd_pin -dir I -type clk s_axi_lite_aclk
-  create_bd_pin -dir I -type rst axi_resetn
-  create_bd_pin -dir I -type rst reset
-  create_bd_pin -dir I config_port
-  create_bd_pin -dir I led_run
-  create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir I -from 15 -to 0 adc_data
-
-  # Create instance: axi_control_0, and set properties
-  set axi_control_0 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_0 ]
-
-  # Create instance: lockin_0, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_0
-  if { [catch {set lockin_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_226_0/group_0/lockin_0/reset]
-
-  # Create instance: concat_0, and set properties
-  set concat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_0 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_0
-
-
-  # Create instance: lockin_1, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_1
-  if { [catch {set lockin_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_226_0/group_0/lockin_1/reset]
-
-  # Create instance: axi_control_1, and set properties
-  set axi_control_1 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_1 ]
-
-  # Create instance: concat_1, and set properties
-  set concat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_1 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_1
-
-
-  # Create instance: lockin_2, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_2
-  if { [catch {set lockin_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_2 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_226_0/group_0/lockin_2/reset]
-
-  # Create instance: axi_control_2, and set properties
-  set axi_control_2 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_2 ]
-
-  # Create instance: concat_2, and set properties
-  set concat_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_2 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_2
-
-
-  # Create instance: lockin_3, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_3
-  if { [catch {set lockin_3 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_3 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_226_0/group_0/lockin_3/reset]
-
-  # Create instance: axi_control_3, and set properties
-  set axi_control_3 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_3 ]
-
-  # Create instance: concat_3, and set properties
-  set concat_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_3 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_3
-
-
-  # Create instance: concat, and set properties
-  set concat [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {64} \
-    CONFIG.IN1_WIDTH {64} \
-    CONFIG.IN2_WIDTH {64} \
-    CONFIG.IN3_WIDTH {64} \
-    CONFIG.NUM_PORTS {4} \
-  ] $concat
-
-
-  # Create instance: stop_if_fifo_full, and set properties
-  set stop_if_fifo_full [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 stop_if_fifo_full ]
-  set_property -dict [list \
-    CONFIG.M_HAS_TLAST {0} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {0} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $stop_if_fifo_full
-
-
-  # Create instance: count_dropped, and set properties
-  set block_name sing_counter_mod
-  set block_cell_name count_dropped
-  if { [catch {set count_dropped [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $count_dropped eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: fifo, and set properties
-  set fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 fifo ]
-  set_property -dict [list \
-    CONFIG.FIFO_DEPTH {4096} \
-    CONFIG.HAS_PROG_FULL {0} \
-    CONFIG.HAS_TLAST {0} \
-    CONFIG.IS_ACLK_ASYNC {0} \
-    CONFIG.TDATA_NUM_BYTES {32} \
-  ] $fifo
-
-
-  # Create instance: dump, and set properties
-  set block_name dump
-  set block_cell_name dump
-  if { [catch {set dump [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $dump eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: axis_subset_converter, and set properties
-  set axis_subset_converter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 axis_subset_converter ]
-  set_property -dict [list \
-    CONFIG.DEFAULT_TLAST {256} \
-    CONFIG.M_HAS_TLAST {1} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {1} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $axis_subset_converter
-
-
-  # Create instance: dma, and set properties
-  set dma [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 dma ]
-  set_property -dict [list \
-    CONFIG.c_addr_width {32} \
-    CONFIG.c_include_mm2s {0} \
-    CONFIG.c_include_s2mm {1} \
-    CONFIG.c_include_sg {0} \
-    CONFIG.c_s2mm_burst_size {128} \
-    CONFIG.c_s_axis_s2mm_tdata_width {256} \
-    CONFIG.c_sg_length_width {26} \
-  ] $dma
-
-
-  # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins dma/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE]
-  connect_bd_intf_net -intf_net S00_AXI1_1 [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins axi_control_0/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI2_1 [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins axi_control_3/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins axi_control_2/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_control_1/S00_AXI]
-  connect_bd_intf_net -intf_net axis_subset_converter_M_AXIS [get_bd_intf_pins axis_subset_converter/M_AXIS] [get_bd_intf_pins dma/S_AXIS_S2MM]
-  connect_bd_intf_net -intf_net count_dropped_m_axis [get_bd_intf_pins count_dropped/m_axis] [get_bd_intf_pins fifo/S_AXIS]
-  connect_bd_intf_net -intf_net dma_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins dma/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net dump_m_axi [get_bd_intf_pins dump/m_axi] [get_bd_intf_pins axis_subset_converter/S_AXIS]
-  connect_bd_intf_net -intf_net fifo_M_AXIS [get_bd_intf_pins fifo/M_AXIS] [get_bd_intf_pins dump/s_axi]
-  connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
-
-  # Create port connections
-  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
-  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
-  connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
-  connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_2 [get_bd_pins axi_control_2/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_3 [get_bd_pins axi_control_3/num_tlast]
-  connect_bd_net -net axi_control_phase [get_bd_pins axi_control_0/phase] [get_bd_pins lockin_0/init_phase]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins stop_if_fifo_full/aclk] [get_bd_pins fifo/s_axis_aclk] [get_bd_pins axis_subset_converter/aclk] [get_bd_pins dma/m_axi_s2mm_aclk] [get_bd_pins dump/clk] [get_bd_pins lockin_0/clk] [get_bd_pins lockin_1/clk] [get_bd_pins lockin_2/clk] [get_bd_pins lockin_3/clk] [get_bd_pins count_dropped/clk]
-  connect_bd_net -net concat_0_dout [get_bd_pins concat_0/dout] [get_bd_pins concat/In0]
-  connect_bd_net -net concat_1_dout [get_bd_pins concat_1/dout] [get_bd_pins concat/In1]
-  connect_bd_net -net concat_2_dout [get_bd_pins concat_2/dout] [get_bd_pins concat/In2]
-  connect_bd_net -net concat_3_dout [get_bd_pins concat_3/dout] [get_bd_pins concat/In3]
-  connect_bd_net -net concat_dout [get_bd_pins concat/dout] [get_bd_pins stop_if_fifo_full/s_axis_tdata]
-  connect_bd_net -net controller_lockin_0_frequency [get_bd_pins axi_control_1/frequency] [get_bd_pins lockin_1/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_1 [get_bd_pins axi_control_2/frequency] [get_bd_pins lockin_2/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_2 [get_bd_pins axi_control_3/frequency] [get_bd_pins lockin_3/init_freq]
-  connect_bd_net -net controller_lockin_0_phase [get_bd_pins axi_control_1/phase] [get_bd_pins lockin_1/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_1 [get_bd_pins axi_control_2/phase] [get_bd_pins lockin_2/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_2 [get_bd_pins axi_control_3/phase] [get_bd_pins lockin_3/init_phase]
-  connect_bd_net -net count_dropped_counter_port [get_bd_pins count_dropped/counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins config_port] [get_bd_pins lockin_0/config_port] [get_bd_pins lockin_1/config_port] [get_bd_pins lockin_2/config_port] [get_bd_pins lockin_3/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins reset] [get_bd_pins lockin_0/reset] [get_bd_pins lockin_1/reset] [get_bd_pins lockin_2/reset] [get_bd_pins lockin_3/reset] [get_bd_pins count_dropped/rst]
-  connect_bd_net -net global_axi_control_0_run [get_bd_pins led_run] [get_bd_pins dump/run] [get_bd_pins lockin_0/run] [get_bd_pins lockin_1/run] [get_bd_pins lockin_2/run] [get_bd_pins lockin_3/run] [get_bd_pins count_dropped/run]
-  connect_bd_net -net lockin_0_output_q [get_bd_pins lockin_0/output_Q] [get_bd_pins concat_0/In1]
-  connect_bd_net -net lockin_output_Q [get_bd_pins lockin_1/output_Q] [get_bd_pins concat_1/In1]
-  connect_bd_net -net lockin_output_i [get_bd_pins lockin_0/output_I] [get_bd_pins concat_0/In0] [get_bd_pins axi_control_0/test_reg]
-  connect_bd_net -net lockin_output_q_1 [get_bd_pins lockin_2/output_Q] [get_bd_pins concat_2/In1]
-  connect_bd_net -net lockin_output_q_2 [get_bd_pins lockin_3/output_Q] [get_bd_pins concat_3/In1]
-  connect_bd_net -net lockin_output_valid3 [get_bd_pins lockin_3/output_valid] [get_bd_pins stop_if_fifo_full/s_axis_tvalid]
-  connect_bd_net -net lockin_wrapper_0_output_i [get_bd_pins lockin_1/output_I] [get_bd_pins concat_1/In0] [get_bd_pins axi_control_1/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_1 [get_bd_pins lockin_2/output_I] [get_bd_pins concat_2/In0] [get_bd_pins axi_control_2/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_2 [get_bd_pins lockin_3/output_I] [get_bd_pins concat_3/In0] [get_bd_pins axi_control_3/test_reg]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins dma/axi_resetn] [get_bd_pins axi_control_0/s00_axi_aresetn] [get_bd_pins axi_control_1/s00_axi_aresetn] [get_bd_pins axi_control_2/s00_axi_aresetn] [get_bd_pins axi_control_3/s00_axi_aresetn]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins stop_if_fifo_full/aresetn] [get_bd_pins fifo/s_axis_aresetn] [get_bd_pins axis_subset_converter/aresetn] [get_bd_pins lockin_0/aresetn] [get_bd_pins lockin_1/aresetn] [get_bd_pins lockin_2/aresetn] [get_bd_pins lockin_3/aresetn]
-  connect_bd_net -net stop_if_fifo_full_transfer_dropped [get_bd_pins stop_if_fifo_full/transfer_dropped] [get_bd_pins count_dropped/dropped]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins adc_data] [get_bd_pins lockin_0/adc_data] [get_bd_pins lockin_1/adc_data] [get_bd_pins lockin_2/adc_data] [get_bd_pins lockin_3/adc_data]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins lockin_0/adc_data_valid] [get_bd_pins lockin_1/adc_data_valid] [get_bd_pins lockin_2/adc_data_valid] [get_bd_pins lockin_3/adc_data_valid]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins dma/s_axi_lite_aclk] [get_bd_pins axi_control_0/s00_axi_aclk] [get_bd_pins axi_control_1/s00_axi_aclk] [get_bd_pins axi_control_2/s00_axi_aclk] [get_bd_pins axi_control_3/s00_axi_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
-# Hierarchical cell: group_3
-proc create_hier_cell_group_3_1 { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_group_3_1() - Empty argument(s)!"}
-     return
+  for {set g 0} {$g < $ng} {incr g} {
+    for {set k 0} {$k < $lockins_per_group} {incr k} {
+      create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_G${g}_CTRL$k
+    }
+    create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE_G$g
+    create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM_G$g
   }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk
-  create_bd_pin -dir I adc_data_valid
-  create_bd_pin -dir I -type clk s_axi_lite_aclk
-  create_bd_pin -dir I -type rst axi_resetn
-  create_bd_pin -dir I -type rst reset
-  create_bd_pin -dir I config_port
-  create_bd_pin -dir I led_run
-  create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir I -from 15 -to 0 adc_data
-
-  # Create instance: axi_control_0, and set properties
-  set axi_control_0 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_0 ]
-
-  # Create instance: lockin_0, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_0
-  if { [catch {set lockin_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_3/lockin_0/reset]
-
-  # Create instance: concat_0, and set properties
-  set concat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_0 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_0
-
-
-  # Create instance: lockin_1, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_1
-  if { [catch {set lockin_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_3/lockin_1/reset]
-
-  # Create instance: axi_control_1, and set properties
-  set axi_control_1 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_1 ]
-
-  # Create instance: concat_1, and set properties
-  set concat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_1 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_1
-
-
-  # Create instance: lockin_2, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_2
-  if { [catch {set lockin_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_2 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_3/lockin_2/reset]
-
-  # Create instance: axi_control_2, and set properties
-  set axi_control_2 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_2 ]
-
-  # Create instance: concat_2, and set properties
-  set concat_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_2 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_2
-
-
-  # Create instance: lockin_3, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_3
-  if { [catch {set lockin_3 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_3 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_3/lockin_3/reset]
-
-  # Create instance: axi_control_3, and set properties
-  set axi_control_3 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_3 ]
-
-  # Create instance: concat_3, and set properties
-  set concat_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_3 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_3
-
-
-  # Create instance: concat, and set properties
-  set concat [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {64} \
-    CONFIG.IN1_WIDTH {64} \
-    CONFIG.IN2_WIDTH {64} \
-    CONFIG.IN3_WIDTH {64} \
-    CONFIG.NUM_PORTS {4} \
-  ] $concat
-
-
-  # Create instance: stop_if_fifo_full, and set properties
-  set stop_if_fifo_full [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 stop_if_fifo_full ]
-  set_property -dict [list \
-    CONFIG.M_HAS_TLAST {0} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {0} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $stop_if_fifo_full
-
-
-  # Create instance: count_dropped, and set properties
-  set block_name sing_counter_mod
-  set block_cell_name count_dropped
-  if { [catch {set count_dropped [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $count_dropped eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: fifo, and set properties
-  set fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 fifo ]
-  set_property -dict [list \
-    CONFIG.FIFO_DEPTH {4096} \
-    CONFIG.HAS_PROG_FULL {0} \
-    CONFIG.HAS_TLAST {0} \
-    CONFIG.IS_ACLK_ASYNC {0} \
-    CONFIG.TDATA_NUM_BYTES {32} \
-  ] $fifo
-
-
-  # Create instance: dump, and set properties
-  set block_name dump
-  set block_cell_name dump
-  if { [catch {set dump [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $dump eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: axis_subset_converter, and set properties
-  set axis_subset_converter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 axis_subset_converter ]
-  set_property -dict [list \
-    CONFIG.DEFAULT_TLAST {256} \
-    CONFIG.M_HAS_TLAST {1} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {1} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $axis_subset_converter
-
-
-  # Create instance: dma, and set properties
-  set dma [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 dma ]
-  set_property -dict [list \
-    CONFIG.c_addr_width {32} \
-    CONFIG.c_include_mm2s {0} \
-    CONFIG.c_include_s2mm {1} \
-    CONFIG.c_include_sg {0} \
-    CONFIG.c_s2mm_burst_size {128} \
-    CONFIG.c_s_axis_s2mm_tdata_width {256} \
-    CONFIG.c_sg_length_width {26} \
-  ] $dma
-
-
-  # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins dma/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE]
-  connect_bd_intf_net -intf_net S00_AXI1_1 [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins axi_control_0/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI2_1 [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins axi_control_3/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins axi_control_2/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_control_1/S00_AXI]
-  connect_bd_intf_net -intf_net axis_subset_converter_M_AXIS [get_bd_intf_pins axis_subset_converter/M_AXIS] [get_bd_intf_pins dma/S_AXIS_S2MM]
-  connect_bd_intf_net -intf_net count_dropped_m_axis [get_bd_intf_pins count_dropped/m_axis] [get_bd_intf_pins fifo/S_AXIS]
-  connect_bd_intf_net -intf_net dma_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins dma/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net dump_m_axi [get_bd_intf_pins dump/m_axi] [get_bd_intf_pins axis_subset_converter/S_AXIS]
-  connect_bd_intf_net -intf_net fifo_M_AXIS [get_bd_intf_pins fifo/M_AXIS] [get_bd_intf_pins dump/s_axi]
-  connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
-
-  # Create port connections
-  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
-  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
-  connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
-  connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_2 [get_bd_pins axi_control_2/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_3 [get_bd_pins axi_control_3/num_tlast]
-  connect_bd_net -net axi_control_phase [get_bd_pins axi_control_0/phase] [get_bd_pins lockin_0/init_phase]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins stop_if_fifo_full/aclk] [get_bd_pins fifo/s_axis_aclk] [get_bd_pins axis_subset_converter/aclk] [get_bd_pins dma/m_axi_s2mm_aclk] [get_bd_pins dump/clk] [get_bd_pins lockin_0/clk] [get_bd_pins lockin_1/clk] [get_bd_pins lockin_2/clk] [get_bd_pins lockin_3/clk] [get_bd_pins count_dropped/clk]
-  connect_bd_net -net concat_0_dout [get_bd_pins concat_0/dout] [get_bd_pins concat/In0]
-  connect_bd_net -net concat_1_dout [get_bd_pins concat_1/dout] [get_bd_pins concat/In1]
-  connect_bd_net -net concat_2_dout [get_bd_pins concat_2/dout] [get_bd_pins concat/In2]
-  connect_bd_net -net concat_3_dout [get_bd_pins concat_3/dout] [get_bd_pins concat/In3]
-  connect_bd_net -net concat_dout [get_bd_pins concat/dout] [get_bd_pins stop_if_fifo_full/s_axis_tdata]
-  connect_bd_net -net controller_lockin_0_frequency [get_bd_pins axi_control_1/frequency] [get_bd_pins lockin_1/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_1 [get_bd_pins axi_control_2/frequency] [get_bd_pins lockin_2/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_2 [get_bd_pins axi_control_3/frequency] [get_bd_pins lockin_3/init_freq]
-  connect_bd_net -net controller_lockin_0_phase [get_bd_pins axi_control_1/phase] [get_bd_pins lockin_1/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_1 [get_bd_pins axi_control_2/phase] [get_bd_pins lockin_2/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_2 [get_bd_pins axi_control_3/phase] [get_bd_pins lockin_3/init_phase]
-  connect_bd_net -net count_dropped_counter_port [get_bd_pins count_dropped/counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins config_port] [get_bd_pins lockin_0/config_port] [get_bd_pins lockin_1/config_port] [get_bd_pins lockin_2/config_port] [get_bd_pins lockin_3/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins reset] [get_bd_pins lockin_0/reset] [get_bd_pins lockin_1/reset] [get_bd_pins lockin_2/reset] [get_bd_pins lockin_3/reset] [get_bd_pins count_dropped/rst]
-  connect_bd_net -net global_axi_control_0_run [get_bd_pins led_run] [get_bd_pins dump/run] [get_bd_pins lockin_0/run] [get_bd_pins lockin_1/run] [get_bd_pins lockin_2/run] [get_bd_pins lockin_3/run] [get_bd_pins count_dropped/run]
-  connect_bd_net -net lockin_0_output_q [get_bd_pins lockin_0/output_Q] [get_bd_pins concat_0/In1]
-  connect_bd_net -net lockin_output_Q [get_bd_pins lockin_1/output_Q] [get_bd_pins concat_1/In1]
-  connect_bd_net -net lockin_output_i [get_bd_pins lockin_0/output_I] [get_bd_pins concat_0/In0] [get_bd_pins axi_control_0/test_reg]
-  connect_bd_net -net lockin_output_q_1 [get_bd_pins lockin_2/output_Q] [get_bd_pins concat_2/In1]
-  connect_bd_net -net lockin_output_q_2 [get_bd_pins lockin_3/output_Q] [get_bd_pins concat_3/In1]
-  connect_bd_net -net lockin_output_valid3 [get_bd_pins lockin_3/output_valid] [get_bd_pins stop_if_fifo_full/s_axis_tvalid]
-  connect_bd_net -net lockin_wrapper_0_output_i [get_bd_pins lockin_1/output_I] [get_bd_pins concat_1/In0] [get_bd_pins axi_control_1/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_1 [get_bd_pins lockin_2/output_I] [get_bd_pins concat_2/In0] [get_bd_pins axi_control_2/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_2 [get_bd_pins lockin_3/output_I] [get_bd_pins concat_3/In0] [get_bd_pins axi_control_3/test_reg]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins dma/axi_resetn] [get_bd_pins axi_control_0/s00_axi_aresetn] [get_bd_pins axi_control_1/s00_axi_aresetn] [get_bd_pins axi_control_2/s00_axi_aresetn] [get_bd_pins axi_control_3/s00_axi_aresetn]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins stop_if_fifo_full/aresetn] [get_bd_pins fifo/s_axis_aresetn] [get_bd_pins axis_subset_converter/aresetn] [get_bd_pins lockin_0/aresetn] [get_bd_pins lockin_1/aresetn] [get_bd_pins lockin_2/aresetn] [get_bd_pins lockin_3/aresetn]
-  connect_bd_net -net stop_if_fifo_full_transfer_dropped [get_bd_pins stop_if_fifo_full/transfer_dropped] [get_bd_pins count_dropped/dropped]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins adc_data] [get_bd_pins lockin_0/adc_data] [get_bd_pins lockin_1/adc_data] [get_bd_pins lockin_2/adc_data] [get_bd_pins lockin_3/adc_data]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins lockin_0/adc_data_valid] [get_bd_pins lockin_1/adc_data_valid] [get_bd_pins lockin_2/adc_data_valid] [get_bd_pins lockin_3/adc_data_valid]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins dma/s_axi_lite_aclk] [get_bd_pins axi_control_0/s00_axi_aclk] [get_bd_pins axi_control_1/s00_axi_aclk] [get_bd_pins axi_control_2/s00_axi_aclk] [get_bd_pins axi_control_3/s00_axi_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
-# Hierarchical cell: group_2
-proc create_hier_cell_group_2_1 { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_group_2_1() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk
-  create_bd_pin -dir I adc_data_valid
-  create_bd_pin -dir I -type clk s_axi_lite_aclk
-  create_bd_pin -dir I -type rst axi_resetn
-  create_bd_pin -dir I -type rst reset
-  create_bd_pin -dir I config_port
-  create_bd_pin -dir I led_run
-  create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir I -from 15 -to 0 adc_data
-
-  # Create instance: axi_control_0, and set properties
-  set axi_control_0 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_0 ]
-
-  # Create instance: lockin_0, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_0
-  if { [catch {set lockin_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_2/lockin_0/reset]
-
-  # Create instance: concat_0, and set properties
-  set concat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_0 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_0
-
-
-  # Create instance: lockin_1, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_1
-  if { [catch {set lockin_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_2/lockin_1/reset]
-
-  # Create instance: axi_control_1, and set properties
-  set axi_control_1 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_1 ]
-
-  # Create instance: concat_1, and set properties
-  set concat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_1 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_1
-
-
-  # Create instance: lockin_2, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_2
-  if { [catch {set lockin_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_2 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_2/lockin_2/reset]
-
-  # Create instance: axi_control_2, and set properties
-  set axi_control_2 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_2 ]
-
-  # Create instance: concat_2, and set properties
-  set concat_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_2 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_2
-
-
-  # Create instance: lockin_3, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_3
-  if { [catch {set lockin_3 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_3 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_2/lockin_3/reset]
-
-  # Create instance: axi_control_3, and set properties
-  set axi_control_3 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_3 ]
-
-  # Create instance: concat_3, and set properties
-  set concat_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_3 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_3
-
-
-  # Create instance: concat, and set properties
-  set concat [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {64} \
-    CONFIG.IN1_WIDTH {64} \
-    CONFIG.IN2_WIDTH {64} \
-    CONFIG.IN3_WIDTH {64} \
-    CONFIG.NUM_PORTS {4} \
-  ] $concat
-
-
-  # Create instance: stop_if_fifo_full, and set properties
-  set stop_if_fifo_full [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 stop_if_fifo_full ]
-  set_property -dict [list \
-    CONFIG.M_HAS_TLAST {0} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {0} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $stop_if_fifo_full
-
-
-  # Create instance: count_dropped, and set properties
-  set block_name sing_counter_mod
-  set block_cell_name count_dropped
-  if { [catch {set count_dropped [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $count_dropped eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: fifo, and set properties
-  set fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 fifo ]
-  set_property -dict [list \
-    CONFIG.FIFO_DEPTH {4096} \
-    CONFIG.HAS_PROG_FULL {0} \
-    CONFIG.HAS_TLAST {0} \
-    CONFIG.IS_ACLK_ASYNC {0} \
-    CONFIG.TDATA_NUM_BYTES {32} \
-  ] $fifo
-
-
-  # Create instance: dump, and set properties
-  set block_name dump
-  set block_cell_name dump
-  if { [catch {set dump [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $dump eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: axis_subset_converter, and set properties
-  set axis_subset_converter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 axis_subset_converter ]
-  set_property -dict [list \
-    CONFIG.DEFAULT_TLAST {256} \
-    CONFIG.M_HAS_TLAST {1} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {1} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $axis_subset_converter
-
-
-  # Create instance: dma, and set properties
-  set dma [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 dma ]
-  set_property -dict [list \
-    CONFIG.c_addr_width {32} \
-    CONFIG.c_include_mm2s {0} \
-    CONFIG.c_include_s2mm {1} \
-    CONFIG.c_include_sg {0} \
-    CONFIG.c_s2mm_burst_size {128} \
-    CONFIG.c_s_axis_s2mm_tdata_width {256} \
-    CONFIG.c_sg_length_width {26} \
-  ] $dma
-
-
-  # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins dma/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE]
-  connect_bd_intf_net -intf_net S00_AXI1_1 [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins axi_control_0/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI2_1 [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins axi_control_3/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins axi_control_2/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_control_1/S00_AXI]
-  connect_bd_intf_net -intf_net axis_subset_converter_M_AXIS [get_bd_intf_pins axis_subset_converter/M_AXIS] [get_bd_intf_pins dma/S_AXIS_S2MM]
-  connect_bd_intf_net -intf_net count_dropped_m_axis [get_bd_intf_pins count_dropped/m_axis] [get_bd_intf_pins fifo/S_AXIS]
-  connect_bd_intf_net -intf_net dma_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins dma/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net dump_m_axi [get_bd_intf_pins dump/m_axi] [get_bd_intf_pins axis_subset_converter/S_AXIS]
-  connect_bd_intf_net -intf_net fifo_M_AXIS [get_bd_intf_pins fifo/M_AXIS] [get_bd_intf_pins dump/s_axi]
-  connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
-
-  # Create port connections
-  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
-  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
-  connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
-  connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_2 [get_bd_pins axi_control_2/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_3 [get_bd_pins axi_control_3/num_tlast]
-  connect_bd_net -net axi_control_phase [get_bd_pins axi_control_0/phase] [get_bd_pins lockin_0/init_phase]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins stop_if_fifo_full/aclk] [get_bd_pins fifo/s_axis_aclk] [get_bd_pins axis_subset_converter/aclk] [get_bd_pins dma/m_axi_s2mm_aclk] [get_bd_pins dump/clk] [get_bd_pins lockin_0/clk] [get_bd_pins lockin_1/clk] [get_bd_pins lockin_2/clk] [get_bd_pins lockin_3/clk] [get_bd_pins count_dropped/clk]
-  connect_bd_net -net concat_0_dout [get_bd_pins concat_0/dout] [get_bd_pins concat/In0]
-  connect_bd_net -net concat_1_dout [get_bd_pins concat_1/dout] [get_bd_pins concat/In1]
-  connect_bd_net -net concat_2_dout [get_bd_pins concat_2/dout] [get_bd_pins concat/In2]
-  connect_bd_net -net concat_3_dout [get_bd_pins concat_3/dout] [get_bd_pins concat/In3]
-  connect_bd_net -net concat_dout [get_bd_pins concat/dout] [get_bd_pins stop_if_fifo_full/s_axis_tdata]
-  connect_bd_net -net controller_lockin_0_frequency [get_bd_pins axi_control_1/frequency] [get_bd_pins lockin_1/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_1 [get_bd_pins axi_control_2/frequency] [get_bd_pins lockin_2/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_2 [get_bd_pins axi_control_3/frequency] [get_bd_pins lockin_3/init_freq]
-  connect_bd_net -net controller_lockin_0_phase [get_bd_pins axi_control_1/phase] [get_bd_pins lockin_1/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_1 [get_bd_pins axi_control_2/phase] [get_bd_pins lockin_2/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_2 [get_bd_pins axi_control_3/phase] [get_bd_pins lockin_3/init_phase]
-  connect_bd_net -net count_dropped_counter_port [get_bd_pins count_dropped/counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins config_port] [get_bd_pins lockin_0/config_port] [get_bd_pins lockin_1/config_port] [get_bd_pins lockin_2/config_port] [get_bd_pins lockin_3/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins reset] [get_bd_pins lockin_0/reset] [get_bd_pins lockin_1/reset] [get_bd_pins lockin_2/reset] [get_bd_pins lockin_3/reset] [get_bd_pins count_dropped/rst]
-  connect_bd_net -net global_axi_control_0_run [get_bd_pins led_run] [get_bd_pins dump/run] [get_bd_pins lockin_0/run] [get_bd_pins lockin_1/run] [get_bd_pins lockin_2/run] [get_bd_pins lockin_3/run] [get_bd_pins count_dropped/run]
-  connect_bd_net -net lockin_0_output_q [get_bd_pins lockin_0/output_Q] [get_bd_pins concat_0/In1]
-  connect_bd_net -net lockin_output_Q [get_bd_pins lockin_1/output_Q] [get_bd_pins concat_1/In1]
-  connect_bd_net -net lockin_output_i [get_bd_pins lockin_0/output_I] [get_bd_pins concat_0/In0] [get_bd_pins axi_control_0/test_reg]
-  connect_bd_net -net lockin_output_q_1 [get_bd_pins lockin_2/output_Q] [get_bd_pins concat_2/In1]
-  connect_bd_net -net lockin_output_q_2 [get_bd_pins lockin_3/output_Q] [get_bd_pins concat_3/In1]
-  connect_bd_net -net lockin_output_valid3 [get_bd_pins lockin_3/output_valid] [get_bd_pins stop_if_fifo_full/s_axis_tvalid]
-  connect_bd_net -net lockin_wrapper_0_output_i [get_bd_pins lockin_1/output_I] [get_bd_pins concat_1/In0] [get_bd_pins axi_control_1/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_1 [get_bd_pins lockin_2/output_I] [get_bd_pins concat_2/In0] [get_bd_pins axi_control_2/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_2 [get_bd_pins lockin_3/output_I] [get_bd_pins concat_3/In0] [get_bd_pins axi_control_3/test_reg]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins dma/axi_resetn] [get_bd_pins axi_control_0/s00_axi_aresetn] [get_bd_pins axi_control_1/s00_axi_aresetn] [get_bd_pins axi_control_2/s00_axi_aresetn] [get_bd_pins axi_control_3/s00_axi_aresetn]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins stop_if_fifo_full/aresetn] [get_bd_pins fifo/s_axis_aresetn] [get_bd_pins axis_subset_converter/aresetn] [get_bd_pins lockin_0/aresetn] [get_bd_pins lockin_1/aresetn] [get_bd_pins lockin_2/aresetn] [get_bd_pins lockin_3/aresetn]
-  connect_bd_net -net stop_if_fifo_full_transfer_dropped [get_bd_pins stop_if_fifo_full/transfer_dropped] [get_bd_pins count_dropped/dropped]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins adc_data] [get_bd_pins lockin_0/adc_data] [get_bd_pins lockin_1/adc_data] [get_bd_pins lockin_2/adc_data] [get_bd_pins lockin_3/adc_data]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins lockin_0/adc_data_valid] [get_bd_pins lockin_1/adc_data_valid] [get_bd_pins lockin_2/adc_data_valid] [get_bd_pins lockin_3/adc_data_valid]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins dma/s_axi_lite_aclk] [get_bd_pins axi_control_0/s00_axi_aclk] [get_bd_pins axi_control_1/s00_axi_aclk] [get_bd_pins axi_control_2/s00_axi_aclk] [get_bd_pins axi_control_3/s00_axi_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
-# Hierarchical cell: group_1
-proc create_hier_cell_group_1_1 { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_group_1_1() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk
-  create_bd_pin -dir I adc_data_valid
-  create_bd_pin -dir I -type clk s_axi_lite_aclk
-  create_bd_pin -dir I -type rst axi_resetn
-  create_bd_pin -dir I -type rst reset
-  create_bd_pin -dir I config_port
-  create_bd_pin -dir I led_run
-  create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir I -from 15 -to 0 adc_data
-
-  # Create instance: axi_control_0, and set properties
-  set axi_control_0 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_0 ]
-
-  # Create instance: lockin_0, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_0
-  if { [catch {set lockin_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_1/lockin_0/reset]
-
-  # Create instance: concat_0, and set properties
-  set concat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_0 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_0
-
-
-  # Create instance: lockin_1, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_1
-  if { [catch {set lockin_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_1/lockin_1/reset]
-
-  # Create instance: axi_control_1, and set properties
-  set axi_control_1 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_1 ]
-
-  # Create instance: concat_1, and set properties
-  set concat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_1 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_1
-
-
-  # Create instance: lockin_2, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_2
-  if { [catch {set lockin_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_2 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_1/lockin_2/reset]
-
-  # Create instance: axi_control_2, and set properties
-  set axi_control_2 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_2 ]
-
-  # Create instance: concat_2, and set properties
-  set concat_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_2 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_2
-
-
-  # Create instance: lockin_3, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_3
-  if { [catch {set lockin_3 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_3 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_1/lockin_3/reset]
-
-  # Create instance: axi_control_3, and set properties
-  set axi_control_3 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_3 ]
-
-  # Create instance: concat_3, and set properties
-  set concat_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_3 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_3
-
-
-  # Create instance: concat, and set properties
-  set concat [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {64} \
-    CONFIG.IN1_WIDTH {64} \
-    CONFIG.IN2_WIDTH {64} \
-    CONFIG.IN3_WIDTH {64} \
-    CONFIG.NUM_PORTS {4} \
-  ] $concat
-
-
-  # Create instance: stop_if_fifo_full, and set properties
-  set stop_if_fifo_full [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 stop_if_fifo_full ]
-  set_property -dict [list \
-    CONFIG.M_HAS_TLAST {0} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {0} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $stop_if_fifo_full
-
-
-  # Create instance: count_dropped, and set properties
-  set block_name sing_counter_mod
-  set block_cell_name count_dropped
-  if { [catch {set count_dropped [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $count_dropped eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: fifo, and set properties
-  set fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 fifo ]
-  set_property -dict [list \
-    CONFIG.FIFO_DEPTH {4096} \
-    CONFIG.HAS_PROG_FULL {0} \
-    CONFIG.HAS_TLAST {0} \
-    CONFIG.IS_ACLK_ASYNC {0} \
-    CONFIG.TDATA_NUM_BYTES {32} \
-  ] $fifo
-
-
-  # Create instance: dump, and set properties
-  set block_name dump
-  set block_cell_name dump
-  if { [catch {set dump [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $dump eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: axis_subset_converter, and set properties
-  set axis_subset_converter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 axis_subset_converter ]
-  set_property -dict [list \
-    CONFIG.DEFAULT_TLAST {256} \
-    CONFIG.M_HAS_TLAST {1} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {1} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $axis_subset_converter
-
-
-  # Create instance: dma, and set properties
-  set dma [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 dma ]
-  set_property -dict [list \
-    CONFIG.c_addr_width {32} \
-    CONFIG.c_include_mm2s {0} \
-    CONFIG.c_include_s2mm {1} \
-    CONFIG.c_include_sg {0} \
-    CONFIG.c_s2mm_burst_size {128} \
-    CONFIG.c_s_axis_s2mm_tdata_width {256} \
-    CONFIG.c_sg_length_width {26} \
-  ] $dma
-
-
-  # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins dma/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE]
-  connect_bd_intf_net -intf_net S00_AXI1_1 [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins axi_control_0/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI2_1 [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins axi_control_3/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins axi_control_2/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_control_1/S00_AXI]
-  connect_bd_intf_net -intf_net axis_subset_converter_M_AXIS [get_bd_intf_pins axis_subset_converter/M_AXIS] [get_bd_intf_pins dma/S_AXIS_S2MM]
-  connect_bd_intf_net -intf_net count_dropped_m_axis [get_bd_intf_pins count_dropped/m_axis] [get_bd_intf_pins fifo/S_AXIS]
-  connect_bd_intf_net -intf_net dma_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins dma/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net dump_m_axi [get_bd_intf_pins dump/m_axi] [get_bd_intf_pins axis_subset_converter/S_AXIS]
-  connect_bd_intf_net -intf_net fifo_M_AXIS [get_bd_intf_pins fifo/M_AXIS] [get_bd_intf_pins dump/s_axi]
-  connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
-
-  # Create port connections
-  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
-  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
-  connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
-  connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_2 [get_bd_pins axi_control_2/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_3 [get_bd_pins axi_control_3/num_tlast]
-  connect_bd_net -net axi_control_phase [get_bd_pins axi_control_0/phase] [get_bd_pins lockin_0/init_phase]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins stop_if_fifo_full/aclk] [get_bd_pins fifo/s_axis_aclk] [get_bd_pins axis_subset_converter/aclk] [get_bd_pins dma/m_axi_s2mm_aclk] [get_bd_pins dump/clk] [get_bd_pins lockin_0/clk] [get_bd_pins lockin_1/clk] [get_bd_pins lockin_2/clk] [get_bd_pins lockin_3/clk] [get_bd_pins count_dropped/clk]
-  connect_bd_net -net concat_0_dout [get_bd_pins concat_0/dout] [get_bd_pins concat/In0]
-  connect_bd_net -net concat_1_dout [get_bd_pins concat_1/dout] [get_bd_pins concat/In1]
-  connect_bd_net -net concat_2_dout [get_bd_pins concat_2/dout] [get_bd_pins concat/In2]
-  connect_bd_net -net concat_3_dout [get_bd_pins concat_3/dout] [get_bd_pins concat/In3]
-  connect_bd_net -net concat_dout [get_bd_pins concat/dout] [get_bd_pins stop_if_fifo_full/s_axis_tdata]
-  connect_bd_net -net controller_lockin_0_frequency [get_bd_pins axi_control_1/frequency] [get_bd_pins lockin_1/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_1 [get_bd_pins axi_control_2/frequency] [get_bd_pins lockin_2/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_2 [get_bd_pins axi_control_3/frequency] [get_bd_pins lockin_3/init_freq]
-  connect_bd_net -net controller_lockin_0_phase [get_bd_pins axi_control_1/phase] [get_bd_pins lockin_1/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_1 [get_bd_pins axi_control_2/phase] [get_bd_pins lockin_2/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_2 [get_bd_pins axi_control_3/phase] [get_bd_pins lockin_3/init_phase]
-  connect_bd_net -net count_dropped_counter_port [get_bd_pins count_dropped/counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins config_port] [get_bd_pins lockin_0/config_port] [get_bd_pins lockin_1/config_port] [get_bd_pins lockin_2/config_port] [get_bd_pins lockin_3/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins reset] [get_bd_pins lockin_0/reset] [get_bd_pins lockin_1/reset] [get_bd_pins lockin_2/reset] [get_bd_pins lockin_3/reset] [get_bd_pins count_dropped/rst]
-  connect_bd_net -net global_axi_control_0_run [get_bd_pins led_run] [get_bd_pins dump/run] [get_bd_pins lockin_0/run] [get_bd_pins lockin_1/run] [get_bd_pins lockin_2/run] [get_bd_pins lockin_3/run] [get_bd_pins count_dropped/run]
-  connect_bd_net -net lockin_0_output_q [get_bd_pins lockin_0/output_Q] [get_bd_pins concat_0/In1]
-  connect_bd_net -net lockin_output_Q [get_bd_pins lockin_1/output_Q] [get_bd_pins concat_1/In1]
-  connect_bd_net -net lockin_output_i [get_bd_pins lockin_0/output_I] [get_bd_pins concat_0/In0] [get_bd_pins axi_control_0/test_reg]
-  connect_bd_net -net lockin_output_q_1 [get_bd_pins lockin_2/output_Q] [get_bd_pins concat_2/In1]
-  connect_bd_net -net lockin_output_q_2 [get_bd_pins lockin_3/output_Q] [get_bd_pins concat_3/In1]
-  connect_bd_net -net lockin_output_valid3 [get_bd_pins lockin_3/output_valid] [get_bd_pins stop_if_fifo_full/s_axis_tvalid]
-  connect_bd_net -net lockin_wrapper_0_output_i [get_bd_pins lockin_1/output_I] [get_bd_pins concat_1/In0] [get_bd_pins axi_control_1/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_1 [get_bd_pins lockin_2/output_I] [get_bd_pins concat_2/In0] [get_bd_pins axi_control_2/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_2 [get_bd_pins lockin_3/output_I] [get_bd_pins concat_3/In0] [get_bd_pins axi_control_3/test_reg]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins dma/axi_resetn] [get_bd_pins axi_control_0/s00_axi_aresetn] [get_bd_pins axi_control_1/s00_axi_aresetn] [get_bd_pins axi_control_2/s00_axi_aresetn] [get_bd_pins axi_control_3/s00_axi_aresetn]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins stop_if_fifo_full/aresetn] [get_bd_pins fifo/s_axis_aresetn] [get_bd_pins axis_subset_converter/aresetn] [get_bd_pins lockin_0/aresetn] [get_bd_pins lockin_1/aresetn] [get_bd_pins lockin_2/aresetn] [get_bd_pins lockin_3/aresetn]
-  connect_bd_net -net stop_if_fifo_full_transfer_dropped [get_bd_pins stop_if_fifo_full/transfer_dropped] [get_bd_pins count_dropped/dropped]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins adc_data] [get_bd_pins lockin_0/adc_data] [get_bd_pins lockin_1/adc_data] [get_bd_pins lockin_2/adc_data] [get_bd_pins lockin_3/adc_data]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins lockin_0/adc_data_valid] [get_bd_pins lockin_1/adc_data_valid] [get_bd_pins lockin_2/adc_data_valid] [get_bd_pins lockin_3/adc_data_valid]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins dma/s_axi_lite_aclk] [get_bd_pins axi_control_0/s00_axi_aclk] [get_bd_pins axi_control_1/s00_axi_aclk] [get_bd_pins axi_control_2/s00_axi_aclk] [get_bd_pins axi_control_3/s00_axi_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
-# Hierarchical cell: group_0
-proc create_hier_cell_group_0_1 { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_group_0_1() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk
-  create_bd_pin -dir I adc_data_valid
-  create_bd_pin -dir I -type clk s_axi_lite_aclk
-  create_bd_pin -dir I -type rst axi_resetn
-  create_bd_pin -dir I -type rst reset
-  create_bd_pin -dir I config_port
-  create_bd_pin -dir I led_run
-  create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir I -from 15 -to 0 adc_data
-
-  # Create instance: axi_control_0, and set properties
-  set axi_control_0 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_0 ]
-
-  # Create instance: lockin_0, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_0
-  if { [catch {set lockin_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_0/lockin_0/reset]
-
-  # Create instance: concat_0, and set properties
-  set concat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_0 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_0
-
-
-  # Create instance: lockin_1, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_1
-  if { [catch {set lockin_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_0/lockin_1/reset]
-
-  # Create instance: axi_control_1, and set properties
-  set axi_control_1 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_1 ]
-
-  # Create instance: concat_1, and set properties
-  set concat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_1 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_1
-
-
-  # Create instance: lockin_2, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_2
-  if { [catch {set lockin_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_2 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_0/lockin_2/reset]
-
-  # Create instance: axi_control_2, and set properties
-  set axi_control_2 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_2 ]
-
-  # Create instance: concat_2, and set properties
-  set concat_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_2 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_2
-
-
-  # Create instance: lockin_3, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_3
-  if { [catch {set lockin_3 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_3 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_1/group_0/lockin_3/reset]
-
-  # Create instance: axi_control_3, and set properties
-  set axi_control_3 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_3 ]
-
-  # Create instance: concat_3, and set properties
-  set concat_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_3 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_3
-
-
-  # Create instance: concat, and set properties
-  set concat [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {64} \
-    CONFIG.IN1_WIDTH {64} \
-    CONFIG.IN2_WIDTH {64} \
-    CONFIG.IN3_WIDTH {64} \
-    CONFIG.NUM_PORTS {4} \
-  ] $concat
-
-
-  # Create instance: stop_if_fifo_full, and set properties
-  set stop_if_fifo_full [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 stop_if_fifo_full ]
-  set_property -dict [list \
-    CONFIG.M_HAS_TLAST {0} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {0} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $stop_if_fifo_full
-
-
-  # Create instance: count_dropped, and set properties
-  set block_name sing_counter_mod
-  set block_cell_name count_dropped
-  if { [catch {set count_dropped [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $count_dropped eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: fifo, and set properties
-  set fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 fifo ]
-  set_property -dict [list \
-    CONFIG.FIFO_DEPTH {4096} \
-    CONFIG.HAS_PROG_FULL {0} \
-    CONFIG.HAS_TLAST {0} \
-    CONFIG.IS_ACLK_ASYNC {0} \
-    CONFIG.TDATA_NUM_BYTES {32} \
-  ] $fifo
-
-
-  # Create instance: dump, and set properties
-  set block_name dump
-  set block_cell_name dump
-  if { [catch {set dump [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $dump eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: axis_subset_converter, and set properties
-  set axis_subset_converter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 axis_subset_converter ]
-  set_property -dict [list \
-    CONFIG.DEFAULT_TLAST {256} \
-    CONFIG.M_HAS_TLAST {1} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {1} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $axis_subset_converter
-
-
-  # Create instance: dma, and set properties
-  set dma [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 dma ]
-  set_property -dict [list \
-    CONFIG.c_addr_width {32} \
-    CONFIG.c_include_mm2s {0} \
-    CONFIG.c_include_s2mm {1} \
-    CONFIG.c_include_sg {0} \
-    CONFIG.c_s2mm_burst_size {128} \
-    CONFIG.c_s_axis_s2mm_tdata_width {256} \
-    CONFIG.c_sg_length_width {26} \
-  ] $dma
-
-
-  # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins dma/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE]
-  connect_bd_intf_net -intf_net S00_AXI1_1 [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins axi_control_0/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI2_1 [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins axi_control_3/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins axi_control_2/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_control_1/S00_AXI]
-  connect_bd_intf_net -intf_net axis_subset_converter_M_AXIS [get_bd_intf_pins axis_subset_converter/M_AXIS] [get_bd_intf_pins dma/S_AXIS_S2MM]
-  connect_bd_intf_net -intf_net count_dropped_m_axis [get_bd_intf_pins count_dropped/m_axis] [get_bd_intf_pins fifo/S_AXIS]
-  connect_bd_intf_net -intf_net dma_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins dma/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net dump_m_axi [get_bd_intf_pins dump/m_axi] [get_bd_intf_pins axis_subset_converter/S_AXIS]
-  connect_bd_intf_net -intf_net fifo_M_AXIS [get_bd_intf_pins fifo/M_AXIS] [get_bd_intf_pins dump/s_axi]
-  connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
-
-  # Create port connections
-  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
-  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
-  connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
-  connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_2 [get_bd_pins axi_control_2/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_3 [get_bd_pins axi_control_3/num_tlast]
-  connect_bd_net -net axi_control_phase [get_bd_pins axi_control_0/phase] [get_bd_pins lockin_0/init_phase]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins stop_if_fifo_full/aclk] [get_bd_pins fifo/s_axis_aclk] [get_bd_pins axis_subset_converter/aclk] [get_bd_pins dma/m_axi_s2mm_aclk] [get_bd_pins dump/clk] [get_bd_pins lockin_0/clk] [get_bd_pins lockin_1/clk] [get_bd_pins lockin_2/clk] [get_bd_pins lockin_3/clk] [get_bd_pins count_dropped/clk]
-  connect_bd_net -net concat_0_dout [get_bd_pins concat_0/dout] [get_bd_pins concat/In0]
-  connect_bd_net -net concat_1_dout [get_bd_pins concat_1/dout] [get_bd_pins concat/In1]
-  connect_bd_net -net concat_2_dout [get_bd_pins concat_2/dout] [get_bd_pins concat/In2]
-  connect_bd_net -net concat_3_dout [get_bd_pins concat_3/dout] [get_bd_pins concat/In3]
-  connect_bd_net -net concat_dout [get_bd_pins concat/dout] [get_bd_pins stop_if_fifo_full/s_axis_tdata]
-  connect_bd_net -net controller_lockin_0_frequency [get_bd_pins axi_control_1/frequency] [get_bd_pins lockin_1/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_1 [get_bd_pins axi_control_2/frequency] [get_bd_pins lockin_2/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_2 [get_bd_pins axi_control_3/frequency] [get_bd_pins lockin_3/init_freq]
-  connect_bd_net -net controller_lockin_0_phase [get_bd_pins axi_control_1/phase] [get_bd_pins lockin_1/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_1 [get_bd_pins axi_control_2/phase] [get_bd_pins lockin_2/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_2 [get_bd_pins axi_control_3/phase] [get_bd_pins lockin_3/init_phase]
-  connect_bd_net -net count_dropped_counter_port [get_bd_pins count_dropped/counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins config_port] [get_bd_pins lockin_0/config_port] [get_bd_pins lockin_1/config_port] [get_bd_pins lockin_2/config_port] [get_bd_pins lockin_3/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins reset] [get_bd_pins lockin_0/reset] [get_bd_pins lockin_1/reset] [get_bd_pins lockin_2/reset] [get_bd_pins lockin_3/reset] [get_bd_pins count_dropped/rst]
-  connect_bd_net -net global_axi_control_0_run [get_bd_pins led_run] [get_bd_pins dump/run] [get_bd_pins lockin_0/run] [get_bd_pins lockin_1/run] [get_bd_pins lockin_2/run] [get_bd_pins lockin_3/run] [get_bd_pins count_dropped/run]
-  connect_bd_net -net lockin_0_output_q [get_bd_pins lockin_0/output_Q] [get_bd_pins concat_0/In1]
-  connect_bd_net -net lockin_output_Q [get_bd_pins lockin_1/output_Q] [get_bd_pins concat_1/In1]
-  connect_bd_net -net lockin_output_i [get_bd_pins lockin_0/output_I] [get_bd_pins concat_0/In0] [get_bd_pins axi_control_0/test_reg]
-  connect_bd_net -net lockin_output_q_1 [get_bd_pins lockin_2/output_Q] [get_bd_pins concat_2/In1]
-  connect_bd_net -net lockin_output_q_2 [get_bd_pins lockin_3/output_Q] [get_bd_pins concat_3/In1]
-  connect_bd_net -net lockin_output_valid3 [get_bd_pins lockin_3/output_valid] [get_bd_pins stop_if_fifo_full/s_axis_tvalid]
-  connect_bd_net -net lockin_wrapper_0_output_i [get_bd_pins lockin_1/output_I] [get_bd_pins concat_1/In0] [get_bd_pins axi_control_1/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_1 [get_bd_pins lockin_2/output_I] [get_bd_pins concat_2/In0] [get_bd_pins axi_control_2/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_2 [get_bd_pins lockin_3/output_I] [get_bd_pins concat_3/In0] [get_bd_pins axi_control_3/test_reg]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins dma/axi_resetn] [get_bd_pins axi_control_0/s00_axi_aresetn] [get_bd_pins axi_control_1/s00_axi_aresetn] [get_bd_pins axi_control_2/s00_axi_aresetn] [get_bd_pins axi_control_3/s00_axi_aresetn]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins stop_if_fifo_full/aresetn] [get_bd_pins fifo/s_axis_aresetn] [get_bd_pins axis_subset_converter/aresetn] [get_bd_pins lockin_0/aresetn] [get_bd_pins lockin_1/aresetn] [get_bd_pins lockin_2/aresetn] [get_bd_pins lockin_3/aresetn]
-  connect_bd_net -net stop_if_fifo_full_transfer_dropped [get_bd_pins stop_if_fifo_full/transfer_dropped] [get_bd_pins count_dropped/dropped]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins adc_data] [get_bd_pins lockin_0/adc_data] [get_bd_pins lockin_1/adc_data] [get_bd_pins lockin_2/adc_data] [get_bd_pins lockin_3/adc_data]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins lockin_0/adc_data_valid] [get_bd_pins lockin_1/adc_data_valid] [get_bd_pins lockin_2/adc_data_valid] [get_bd_pins lockin_3/adc_data_valid]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins dma/s_axi_lite_aclk] [get_bd_pins axi_control_0/s00_axi_aclk] [get_bd_pins axi_control_1/s00_axi_aclk] [get_bd_pins axi_control_2/s00_axi_aclk] [get_bd_pins axi_control_3/s00_axi_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
-# Hierarchical cell: group_3
-proc create_hier_cell_group_3 { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_group_3() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk
-  create_bd_pin -dir I adc_data_valid
-  create_bd_pin -dir I -type clk s_axi_lite_aclk
-  create_bd_pin -dir I -type rst axi_resetn
-  create_bd_pin -dir I -type rst reset
-  create_bd_pin -dir I config_port
-  create_bd_pin -dir I led_run
-  create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir I -from 15 -to 0 adc_data
-
-  # Create instance: axi_control_0, and set properties
-  set axi_control_0 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_0 ]
-
-  # Create instance: lockin_0, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_0
-  if { [catch {set lockin_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_3/lockin_0/reset]
-
-  # Create instance: concat_0, and set properties
-  set concat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_0 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_0
-
-
-  # Create instance: lockin_1, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_1
-  if { [catch {set lockin_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_3/lockin_1/reset]
-
-  # Create instance: axi_control_1, and set properties
-  set axi_control_1 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_1 ]
-
-  # Create instance: concat_1, and set properties
-  set concat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_1 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_1
-
-
-  # Create instance: lockin_2, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_2
-  if { [catch {set lockin_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_2 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_3/lockin_2/reset]
-
-  # Create instance: axi_control_2, and set properties
-  set axi_control_2 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_2 ]
-
-  # Create instance: concat_2, and set properties
-  set concat_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_2 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_2
-
-
-  # Create instance: lockin_3, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_3
-  if { [catch {set lockin_3 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_3 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_3/lockin_3/reset]
-
-  # Create instance: axi_control_3, and set properties
-  set axi_control_3 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_3 ]
-
-  # Create instance: concat_3, and set properties
-  set concat_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_3 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_3
-
-
-  # Create instance: concat, and set properties
-  set concat [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {64} \
-    CONFIG.IN1_WIDTH {64} \
-    CONFIG.IN2_WIDTH {64} \
-    CONFIG.IN3_WIDTH {64} \
-    CONFIG.NUM_PORTS {4} \
-  ] $concat
-
-
-  # Create instance: stop_if_fifo_full, and set properties
-  set stop_if_fifo_full [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 stop_if_fifo_full ]
-  set_property -dict [list \
-    CONFIG.M_HAS_TLAST {0} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {0} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $stop_if_fifo_full
-
-
-  # Create instance: count_dropped, and set properties
-  set block_name sing_counter_mod
-  set block_cell_name count_dropped
-  if { [catch {set count_dropped [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $count_dropped eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: fifo, and set properties
-  set fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 fifo ]
-  set_property -dict [list \
-    CONFIG.FIFO_DEPTH {4096} \
-    CONFIG.HAS_PROG_FULL {0} \
-    CONFIG.HAS_TLAST {0} \
-    CONFIG.IS_ACLK_ASYNC {0} \
-    CONFIG.TDATA_NUM_BYTES {32} \
-  ] $fifo
-
-
-  # Create instance: dump, and set properties
-  set block_name dump
-  set block_cell_name dump
-  if { [catch {set dump [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $dump eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: axis_subset_converter, and set properties
-  set axis_subset_converter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 axis_subset_converter ]
-  set_property -dict [list \
-    CONFIG.DEFAULT_TLAST {256} \
-    CONFIG.M_HAS_TLAST {1} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {1} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $axis_subset_converter
-
-
-  # Create instance: dma, and set properties
-  set dma [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 dma ]
-  set_property -dict [list \
-    CONFIG.c_addr_width {32} \
-    CONFIG.c_include_mm2s {0} \
-    CONFIG.c_include_s2mm {1} \
-    CONFIG.c_include_sg {0} \
-    CONFIG.c_s2mm_burst_size {128} \
-    CONFIG.c_s_axis_s2mm_tdata_width {256} \
-    CONFIG.c_sg_length_width {26} \
-  ] $dma
-
-
-  # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins dma/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE]
-  connect_bd_intf_net -intf_net S00_AXI1_1 [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins axi_control_0/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI2_1 [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins axi_control_3/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins axi_control_2/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_control_1/S00_AXI]
-  connect_bd_intf_net -intf_net axis_subset_converter_M_AXIS [get_bd_intf_pins axis_subset_converter/M_AXIS] [get_bd_intf_pins dma/S_AXIS_S2MM]
-  connect_bd_intf_net -intf_net count_dropped_m_axis [get_bd_intf_pins count_dropped/m_axis] [get_bd_intf_pins fifo/S_AXIS]
-  connect_bd_intf_net -intf_net dma_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins dma/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net dump_m_axi [get_bd_intf_pins dump/m_axi] [get_bd_intf_pins axis_subset_converter/S_AXIS]
-  connect_bd_intf_net -intf_net fifo_M_AXIS [get_bd_intf_pins fifo/M_AXIS] [get_bd_intf_pins dump/s_axi]
-  connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
-
-  # Create port connections
-  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
-  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
-  connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
-  connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_2 [get_bd_pins axi_control_2/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_3 [get_bd_pins axi_control_3/num_tlast]
-  connect_bd_net -net axi_control_phase [get_bd_pins axi_control_0/phase] [get_bd_pins lockin_0/init_phase]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins stop_if_fifo_full/aclk] [get_bd_pins fifo/s_axis_aclk] [get_bd_pins axis_subset_converter/aclk] [get_bd_pins dma/m_axi_s2mm_aclk] [get_bd_pins dump/clk] [get_bd_pins lockin_0/clk] [get_bd_pins lockin_1/clk] [get_bd_pins lockin_2/clk] [get_bd_pins lockin_3/clk] [get_bd_pins count_dropped/clk]
-  connect_bd_net -net concat_0_dout [get_bd_pins concat_0/dout] [get_bd_pins concat/In0]
-  connect_bd_net -net concat_1_dout [get_bd_pins concat_1/dout] [get_bd_pins concat/In1]
-  connect_bd_net -net concat_2_dout [get_bd_pins concat_2/dout] [get_bd_pins concat/In2]
-  connect_bd_net -net concat_3_dout [get_bd_pins concat_3/dout] [get_bd_pins concat/In3]
-  connect_bd_net -net concat_dout [get_bd_pins concat/dout] [get_bd_pins stop_if_fifo_full/s_axis_tdata]
-  connect_bd_net -net controller_lockin_0_frequency [get_bd_pins axi_control_1/frequency] [get_bd_pins lockin_1/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_1 [get_bd_pins axi_control_2/frequency] [get_bd_pins lockin_2/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_2 [get_bd_pins axi_control_3/frequency] [get_bd_pins lockin_3/init_freq]
-  connect_bd_net -net controller_lockin_0_phase [get_bd_pins axi_control_1/phase] [get_bd_pins lockin_1/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_1 [get_bd_pins axi_control_2/phase] [get_bd_pins lockin_2/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_2 [get_bd_pins axi_control_3/phase] [get_bd_pins lockin_3/init_phase]
-  connect_bd_net -net count_dropped_counter_port [get_bd_pins count_dropped/counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins config_port] [get_bd_pins lockin_0/config_port] [get_bd_pins lockin_1/config_port] [get_bd_pins lockin_2/config_port] [get_bd_pins lockin_3/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins reset] [get_bd_pins lockin_0/reset] [get_bd_pins lockin_1/reset] [get_bd_pins lockin_2/reset] [get_bd_pins lockin_3/reset] [get_bd_pins count_dropped/rst]
-  connect_bd_net -net global_axi_control_0_run [get_bd_pins led_run] [get_bd_pins dump/run] [get_bd_pins lockin_0/run] [get_bd_pins lockin_1/run] [get_bd_pins lockin_2/run] [get_bd_pins lockin_3/run] [get_bd_pins count_dropped/run]
-  connect_bd_net -net lockin_0_output_q [get_bd_pins lockin_0/output_Q] [get_bd_pins concat_0/In1]
-  connect_bd_net -net lockin_output_Q [get_bd_pins lockin_1/output_Q] [get_bd_pins concat_1/In1]
-  connect_bd_net -net lockin_output_i [get_bd_pins lockin_0/output_I] [get_bd_pins concat_0/In0] [get_bd_pins axi_control_0/test_reg]
-  connect_bd_net -net lockin_output_q_1 [get_bd_pins lockin_2/output_Q] [get_bd_pins concat_2/In1]
-  connect_bd_net -net lockin_output_q_2 [get_bd_pins lockin_3/output_Q] [get_bd_pins concat_3/In1]
-  connect_bd_net -net lockin_output_valid3 [get_bd_pins lockin_3/output_valid] [get_bd_pins stop_if_fifo_full/s_axis_tvalid]
-  connect_bd_net -net lockin_wrapper_0_output_i [get_bd_pins lockin_1/output_I] [get_bd_pins concat_1/In0] [get_bd_pins axi_control_1/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_1 [get_bd_pins lockin_2/output_I] [get_bd_pins concat_2/In0] [get_bd_pins axi_control_2/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_2 [get_bd_pins lockin_3/output_I] [get_bd_pins concat_3/In0] [get_bd_pins axi_control_3/test_reg]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins dma/axi_resetn] [get_bd_pins axi_control_0/s00_axi_aresetn] [get_bd_pins axi_control_1/s00_axi_aresetn] [get_bd_pins axi_control_2/s00_axi_aresetn] [get_bd_pins axi_control_3/s00_axi_aresetn]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins stop_if_fifo_full/aresetn] [get_bd_pins fifo/s_axis_aresetn] [get_bd_pins axis_subset_converter/aresetn] [get_bd_pins lockin_0/aresetn] [get_bd_pins lockin_1/aresetn] [get_bd_pins lockin_2/aresetn] [get_bd_pins lockin_3/aresetn]
-  connect_bd_net -net stop_if_fifo_full_transfer_dropped [get_bd_pins stop_if_fifo_full/transfer_dropped] [get_bd_pins count_dropped/dropped]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins adc_data] [get_bd_pins lockin_0/adc_data] [get_bd_pins lockin_1/adc_data] [get_bd_pins lockin_2/adc_data] [get_bd_pins lockin_3/adc_data]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins lockin_0/adc_data_valid] [get_bd_pins lockin_1/adc_data_valid] [get_bd_pins lockin_2/adc_data_valid] [get_bd_pins lockin_3/adc_data_valid]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins dma/s_axi_lite_aclk] [get_bd_pins axi_control_0/s00_axi_aclk] [get_bd_pins axi_control_1/s00_axi_aclk] [get_bd_pins axi_control_2/s00_axi_aclk] [get_bd_pins axi_control_3/s00_axi_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
-# Hierarchical cell: group_2
-proc create_hier_cell_group_2 { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_group_2() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk
-  create_bd_pin -dir I adc_data_valid
-  create_bd_pin -dir I -type clk s_axi_lite_aclk
-  create_bd_pin -dir I -type rst axi_resetn
-  create_bd_pin -dir I -type rst reset
-  create_bd_pin -dir I config_port
-  create_bd_pin -dir I led_run
-  create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir I -from 15 -to 0 adc_data
-
-  # Create instance: axi_control_0, and set properties
-  set axi_control_0 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_0 ]
-
-  # Create instance: lockin_0, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_0
-  if { [catch {set lockin_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_2/lockin_0/reset]
-
-  # Create instance: concat_0, and set properties
-  set concat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_0 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_0
-
-
-  # Create instance: lockin_1, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_1
-  if { [catch {set lockin_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_2/lockin_1/reset]
-
-  # Create instance: axi_control_1, and set properties
-  set axi_control_1 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_1 ]
-
-  # Create instance: concat_1, and set properties
-  set concat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_1 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_1
-
-
-  # Create instance: lockin_2, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_2
-  if { [catch {set lockin_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_2 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_2/lockin_2/reset]
-
-  # Create instance: axi_control_2, and set properties
-  set axi_control_2 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_2 ]
-
-  # Create instance: concat_2, and set properties
-  set concat_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_2 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_2
-
-
-  # Create instance: lockin_3, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_3
-  if { [catch {set lockin_3 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_3 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_2/lockin_3/reset]
-
-  # Create instance: axi_control_3, and set properties
-  set axi_control_3 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_3 ]
-
-  # Create instance: concat_3, and set properties
-  set concat_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_3 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_3
-
-
-  # Create instance: concat, and set properties
-  set concat [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {64} \
-    CONFIG.IN1_WIDTH {64} \
-    CONFIG.IN2_WIDTH {64} \
-    CONFIG.IN3_WIDTH {64} \
-    CONFIG.NUM_PORTS {4} \
-  ] $concat
-
-
-  # Create instance: stop_if_fifo_full, and set properties
-  set stop_if_fifo_full [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 stop_if_fifo_full ]
-  set_property -dict [list \
-    CONFIG.M_HAS_TLAST {0} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {0} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $stop_if_fifo_full
-
-
-  # Create instance: count_dropped, and set properties
-  set block_name sing_counter_mod
-  set block_cell_name count_dropped
-  if { [catch {set count_dropped [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $count_dropped eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: fifo, and set properties
-  set fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 fifo ]
-  set_property -dict [list \
-    CONFIG.FIFO_DEPTH {4096} \
-    CONFIG.HAS_PROG_FULL {0} \
-    CONFIG.HAS_TLAST {0} \
-    CONFIG.IS_ACLK_ASYNC {0} \
-    CONFIG.TDATA_NUM_BYTES {32} \
-  ] $fifo
-
-
-  # Create instance: dump, and set properties
-  set block_name dump
-  set block_cell_name dump
-  if { [catch {set dump [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $dump eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: axis_subset_converter, and set properties
-  set axis_subset_converter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 axis_subset_converter ]
-  set_property -dict [list \
-    CONFIG.DEFAULT_TLAST {256} \
-    CONFIG.M_HAS_TLAST {1} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {1} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $axis_subset_converter
-
-
-  # Create instance: dma, and set properties
-  set dma [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 dma ]
-  set_property -dict [list \
-    CONFIG.c_addr_width {32} \
-    CONFIG.c_include_mm2s {0} \
-    CONFIG.c_include_s2mm {1} \
-    CONFIG.c_include_sg {0} \
-    CONFIG.c_s2mm_burst_size {128} \
-    CONFIG.c_s_axis_s2mm_tdata_width {256} \
-    CONFIG.c_sg_length_width {26} \
-  ] $dma
-
-
-  # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins dma/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE]
-  connect_bd_intf_net -intf_net S00_AXI1_1 [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins axi_control_0/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI2_1 [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins axi_control_3/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins axi_control_2/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_control_1/S00_AXI]
-  connect_bd_intf_net -intf_net axis_subset_converter_M_AXIS [get_bd_intf_pins axis_subset_converter/M_AXIS] [get_bd_intf_pins dma/S_AXIS_S2MM]
-  connect_bd_intf_net -intf_net count_dropped_m_axis [get_bd_intf_pins count_dropped/m_axis] [get_bd_intf_pins fifo/S_AXIS]
-  connect_bd_intf_net -intf_net dma_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins dma/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net dump_m_axi [get_bd_intf_pins dump/m_axi] [get_bd_intf_pins axis_subset_converter/S_AXIS]
-  connect_bd_intf_net -intf_net fifo_M_AXIS [get_bd_intf_pins fifo/M_AXIS] [get_bd_intf_pins dump/s_axi]
-  connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
-
-  # Create port connections
-  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
-  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
-  connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
-  connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_2 [get_bd_pins axi_control_2/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_3 [get_bd_pins axi_control_3/num_tlast]
-  connect_bd_net -net axi_control_phase [get_bd_pins axi_control_0/phase] [get_bd_pins lockin_0/init_phase]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins stop_if_fifo_full/aclk] [get_bd_pins fifo/s_axis_aclk] [get_bd_pins axis_subset_converter/aclk] [get_bd_pins dma/m_axi_s2mm_aclk] [get_bd_pins dump/clk] [get_bd_pins lockin_0/clk] [get_bd_pins lockin_1/clk] [get_bd_pins lockin_2/clk] [get_bd_pins lockin_3/clk] [get_bd_pins count_dropped/clk]
-  connect_bd_net -net concat_0_dout [get_bd_pins concat_0/dout] [get_bd_pins concat/In0]
-  connect_bd_net -net concat_1_dout [get_bd_pins concat_1/dout] [get_bd_pins concat/In1]
-  connect_bd_net -net concat_2_dout [get_bd_pins concat_2/dout] [get_bd_pins concat/In2]
-  connect_bd_net -net concat_3_dout [get_bd_pins concat_3/dout] [get_bd_pins concat/In3]
-  connect_bd_net -net concat_dout [get_bd_pins concat/dout] [get_bd_pins stop_if_fifo_full/s_axis_tdata]
-  connect_bd_net -net controller_lockin_0_frequency [get_bd_pins axi_control_1/frequency] [get_bd_pins lockin_1/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_1 [get_bd_pins axi_control_2/frequency] [get_bd_pins lockin_2/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_2 [get_bd_pins axi_control_3/frequency] [get_bd_pins lockin_3/init_freq]
-  connect_bd_net -net controller_lockin_0_phase [get_bd_pins axi_control_1/phase] [get_bd_pins lockin_1/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_1 [get_bd_pins axi_control_2/phase] [get_bd_pins lockin_2/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_2 [get_bd_pins axi_control_3/phase] [get_bd_pins lockin_3/init_phase]
-  connect_bd_net -net count_dropped_counter_port [get_bd_pins count_dropped/counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins config_port] [get_bd_pins lockin_0/config_port] [get_bd_pins lockin_1/config_port] [get_bd_pins lockin_2/config_port] [get_bd_pins lockin_3/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins reset] [get_bd_pins lockin_0/reset] [get_bd_pins lockin_1/reset] [get_bd_pins lockin_2/reset] [get_bd_pins lockin_3/reset] [get_bd_pins count_dropped/rst]
-  connect_bd_net -net global_axi_control_0_run [get_bd_pins led_run] [get_bd_pins dump/run] [get_bd_pins lockin_0/run] [get_bd_pins lockin_1/run] [get_bd_pins lockin_2/run] [get_bd_pins lockin_3/run] [get_bd_pins count_dropped/run]
-  connect_bd_net -net lockin_0_output_q [get_bd_pins lockin_0/output_Q] [get_bd_pins concat_0/In1]
-  connect_bd_net -net lockin_output_Q [get_bd_pins lockin_1/output_Q] [get_bd_pins concat_1/In1]
-  connect_bd_net -net lockin_output_i [get_bd_pins lockin_0/output_I] [get_bd_pins concat_0/In0] [get_bd_pins axi_control_0/test_reg]
-  connect_bd_net -net lockin_output_q_1 [get_bd_pins lockin_2/output_Q] [get_bd_pins concat_2/In1]
-  connect_bd_net -net lockin_output_q_2 [get_bd_pins lockin_3/output_Q] [get_bd_pins concat_3/In1]
-  connect_bd_net -net lockin_output_valid3 [get_bd_pins lockin_3/output_valid] [get_bd_pins stop_if_fifo_full/s_axis_tvalid]
-  connect_bd_net -net lockin_wrapper_0_output_i [get_bd_pins lockin_1/output_I] [get_bd_pins concat_1/In0] [get_bd_pins axi_control_1/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_1 [get_bd_pins lockin_2/output_I] [get_bd_pins concat_2/In0] [get_bd_pins axi_control_2/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_2 [get_bd_pins lockin_3/output_I] [get_bd_pins concat_3/In0] [get_bd_pins axi_control_3/test_reg]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins dma/axi_resetn] [get_bd_pins axi_control_0/s00_axi_aresetn] [get_bd_pins axi_control_1/s00_axi_aresetn] [get_bd_pins axi_control_2/s00_axi_aresetn] [get_bd_pins axi_control_3/s00_axi_aresetn]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins stop_if_fifo_full/aresetn] [get_bd_pins fifo/s_axis_aresetn] [get_bd_pins axis_subset_converter/aresetn] [get_bd_pins lockin_0/aresetn] [get_bd_pins lockin_1/aresetn] [get_bd_pins lockin_2/aresetn] [get_bd_pins lockin_3/aresetn]
-  connect_bd_net -net stop_if_fifo_full_transfer_dropped [get_bd_pins stop_if_fifo_full/transfer_dropped] [get_bd_pins count_dropped/dropped]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins adc_data] [get_bd_pins lockin_0/adc_data] [get_bd_pins lockin_1/adc_data] [get_bd_pins lockin_2/adc_data] [get_bd_pins lockin_3/adc_data]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins lockin_0/adc_data_valid] [get_bd_pins lockin_1/adc_data_valid] [get_bd_pins lockin_2/adc_data_valid] [get_bd_pins lockin_3/adc_data_valid]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins dma/s_axi_lite_aclk] [get_bd_pins axi_control_0/s00_axi_aclk] [get_bd_pins axi_control_1/s00_axi_aclk] [get_bd_pins axi_control_2/s00_axi_aclk] [get_bd_pins axi_control_3/s00_axi_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
-# Hierarchical cell: group_1
-proc create_hier_cell_group_1 { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_group_1() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk
-  create_bd_pin -dir I adc_data_valid
-  create_bd_pin -dir I -type clk s_axi_lite_aclk
-  create_bd_pin -dir I -type rst axi_resetn
-  create_bd_pin -dir I -type rst reset
-  create_bd_pin -dir I config_port
-  create_bd_pin -dir I led_run
-  create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir I -from 15 -to 0 adc_data
-
-  # Create instance: axi_control_0, and set properties
-  set axi_control_0 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_0 ]
-
-  # Create instance: lockin_0, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_0
-  if { [catch {set lockin_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_1/lockin_0/reset]
-
-  # Create instance: concat_0, and set properties
-  set concat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_0 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_0
-
-
-  # Create instance: lockin_1, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_1
-  if { [catch {set lockin_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_1/lockin_1/reset]
-
-  # Create instance: axi_control_1, and set properties
-  set axi_control_1 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_1 ]
-
-  # Create instance: concat_1, and set properties
-  set concat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_1 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_1
-
-
-  # Create instance: lockin_2, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_2
-  if { [catch {set lockin_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_2 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_1/lockin_2/reset]
-
-  # Create instance: axi_control_2, and set properties
-  set axi_control_2 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_2 ]
-
-  # Create instance: concat_2, and set properties
-  set concat_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_2 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_2
-
-
-  # Create instance: lockin_3, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_3
-  if { [catch {set lockin_3 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_3 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_1/lockin_3/reset]
-
-  # Create instance: axi_control_3, and set properties
-  set axi_control_3 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_3 ]
-
-  # Create instance: concat_3, and set properties
-  set concat_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_3 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_3
-
-
-  # Create instance: concat, and set properties
-  set concat [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {64} \
-    CONFIG.IN1_WIDTH {64} \
-    CONFIG.IN2_WIDTH {64} \
-    CONFIG.IN3_WIDTH {64} \
-    CONFIG.NUM_PORTS {4} \
-  ] $concat
-
-
-  # Create instance: stop_if_fifo_full, and set properties
-  set stop_if_fifo_full [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 stop_if_fifo_full ]
-  set_property -dict [list \
-    CONFIG.M_HAS_TLAST {0} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {0} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $stop_if_fifo_full
-
-
-  # Create instance: count_dropped, and set properties
-  set block_name sing_counter_mod
-  set block_cell_name count_dropped
-  if { [catch {set count_dropped [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $count_dropped eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: fifo, and set properties
-  set fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 fifo ]
-  set_property -dict [list \
-    CONFIG.FIFO_DEPTH {4096} \
-    CONFIG.HAS_PROG_FULL {0} \
-    CONFIG.HAS_TLAST {0} \
-    CONFIG.IS_ACLK_ASYNC {0} \
-    CONFIG.TDATA_NUM_BYTES {32} \
-  ] $fifo
-
-
-  # Create instance: dump, and set properties
-  set block_name dump
-  set block_cell_name dump
-  if { [catch {set dump [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $dump eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: axis_subset_converter, and set properties
-  set axis_subset_converter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 axis_subset_converter ]
-  set_property -dict [list \
-    CONFIG.DEFAULT_TLAST {256} \
-    CONFIG.M_HAS_TLAST {1} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {1} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $axis_subset_converter
-
-
-  # Create instance: dma, and set properties
-  set dma [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 dma ]
-  set_property -dict [list \
-    CONFIG.c_addr_width {32} \
-    CONFIG.c_include_mm2s {0} \
-    CONFIG.c_include_s2mm {1} \
-    CONFIG.c_include_sg {0} \
-    CONFIG.c_s2mm_burst_size {128} \
-    CONFIG.c_s_axis_s2mm_tdata_width {256} \
-    CONFIG.c_sg_length_width {26} \
-  ] $dma
-
-
-  # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins dma/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE]
-  connect_bd_intf_net -intf_net S00_AXI1_1 [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins axi_control_0/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI2_1 [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins axi_control_3/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins axi_control_2/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_control_1/S00_AXI]
-  connect_bd_intf_net -intf_net axis_subset_converter_M_AXIS [get_bd_intf_pins axis_subset_converter/M_AXIS] [get_bd_intf_pins dma/S_AXIS_S2MM]
-  connect_bd_intf_net -intf_net count_dropped_m_axis [get_bd_intf_pins count_dropped/m_axis] [get_bd_intf_pins fifo/S_AXIS]
-  connect_bd_intf_net -intf_net dma_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins dma/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net dump_m_axi [get_bd_intf_pins dump/m_axi] [get_bd_intf_pins axis_subset_converter/S_AXIS]
-  connect_bd_intf_net -intf_net fifo_M_AXIS [get_bd_intf_pins fifo/M_AXIS] [get_bd_intf_pins dump/s_axi]
-  connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
-
-  # Create port connections
-  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
-  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
-  connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
-  connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_2 [get_bd_pins axi_control_2/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_3 [get_bd_pins axi_control_3/num_tlast]
-  connect_bd_net -net axi_control_phase [get_bd_pins axi_control_0/phase] [get_bd_pins lockin_0/init_phase]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins stop_if_fifo_full/aclk] [get_bd_pins fifo/s_axis_aclk] [get_bd_pins axis_subset_converter/aclk] [get_bd_pins dma/m_axi_s2mm_aclk] [get_bd_pins dump/clk] [get_bd_pins lockin_0/clk] [get_bd_pins lockin_1/clk] [get_bd_pins lockin_2/clk] [get_bd_pins lockin_3/clk] [get_bd_pins count_dropped/clk]
-  connect_bd_net -net concat_0_dout [get_bd_pins concat_0/dout] [get_bd_pins concat/In0]
-  connect_bd_net -net concat_1_dout [get_bd_pins concat_1/dout] [get_bd_pins concat/In1]
-  connect_bd_net -net concat_2_dout [get_bd_pins concat_2/dout] [get_bd_pins concat/In2]
-  connect_bd_net -net concat_3_dout [get_bd_pins concat_3/dout] [get_bd_pins concat/In3]
-  connect_bd_net -net concat_dout [get_bd_pins concat/dout] [get_bd_pins stop_if_fifo_full/s_axis_tdata]
-  connect_bd_net -net controller_lockin_0_frequency [get_bd_pins axi_control_1/frequency] [get_bd_pins lockin_1/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_1 [get_bd_pins axi_control_2/frequency] [get_bd_pins lockin_2/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_2 [get_bd_pins axi_control_3/frequency] [get_bd_pins lockin_3/init_freq]
-  connect_bd_net -net controller_lockin_0_phase [get_bd_pins axi_control_1/phase] [get_bd_pins lockin_1/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_1 [get_bd_pins axi_control_2/phase] [get_bd_pins lockin_2/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_2 [get_bd_pins axi_control_3/phase] [get_bd_pins lockin_3/init_phase]
-  connect_bd_net -net count_dropped_counter_port [get_bd_pins count_dropped/counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins config_port] [get_bd_pins lockin_0/config_port] [get_bd_pins lockin_1/config_port] [get_bd_pins lockin_2/config_port] [get_bd_pins lockin_3/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins reset] [get_bd_pins lockin_0/reset] [get_bd_pins lockin_1/reset] [get_bd_pins lockin_2/reset] [get_bd_pins lockin_3/reset] [get_bd_pins count_dropped/rst]
-  connect_bd_net -net global_axi_control_0_run [get_bd_pins led_run] [get_bd_pins dump/run] [get_bd_pins lockin_0/run] [get_bd_pins lockin_1/run] [get_bd_pins lockin_2/run] [get_bd_pins lockin_3/run] [get_bd_pins count_dropped/run]
-  connect_bd_net -net lockin_0_output_q [get_bd_pins lockin_0/output_Q] [get_bd_pins concat_0/In1]
-  connect_bd_net -net lockin_output_Q [get_bd_pins lockin_1/output_Q] [get_bd_pins concat_1/In1]
-  connect_bd_net -net lockin_output_i [get_bd_pins lockin_0/output_I] [get_bd_pins concat_0/In0] [get_bd_pins axi_control_0/test_reg]
-  connect_bd_net -net lockin_output_q_1 [get_bd_pins lockin_2/output_Q] [get_bd_pins concat_2/In1]
-  connect_bd_net -net lockin_output_q_2 [get_bd_pins lockin_3/output_Q] [get_bd_pins concat_3/In1]
-  connect_bd_net -net lockin_output_valid3 [get_bd_pins lockin_3/output_valid] [get_bd_pins stop_if_fifo_full/s_axis_tvalid]
-  connect_bd_net -net lockin_wrapper_0_output_i [get_bd_pins lockin_1/output_I] [get_bd_pins concat_1/In0] [get_bd_pins axi_control_1/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_1 [get_bd_pins lockin_2/output_I] [get_bd_pins concat_2/In0] [get_bd_pins axi_control_2/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_2 [get_bd_pins lockin_3/output_I] [get_bd_pins concat_3/In0] [get_bd_pins axi_control_3/test_reg]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins dma/axi_resetn] [get_bd_pins axi_control_0/s00_axi_aresetn] [get_bd_pins axi_control_1/s00_axi_aresetn] [get_bd_pins axi_control_2/s00_axi_aresetn] [get_bd_pins axi_control_3/s00_axi_aresetn]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins stop_if_fifo_full/aresetn] [get_bd_pins fifo/s_axis_aresetn] [get_bd_pins axis_subset_converter/aresetn] [get_bd_pins lockin_0/aresetn] [get_bd_pins lockin_1/aresetn] [get_bd_pins lockin_2/aresetn] [get_bd_pins lockin_3/aresetn]
-  connect_bd_net -net stop_if_fifo_full_transfer_dropped [get_bd_pins stop_if_fifo_full/transfer_dropped] [get_bd_pins count_dropped/dropped]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins adc_data] [get_bd_pins lockin_0/adc_data] [get_bd_pins lockin_1/adc_data] [get_bd_pins lockin_2/adc_data] [get_bd_pins lockin_3/adc_data]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins lockin_0/adc_data_valid] [get_bd_pins lockin_1/adc_data_valid] [get_bd_pins lockin_2/adc_data_valid] [get_bd_pins lockin_3/adc_data_valid]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins dma/s_axi_lite_aclk] [get_bd_pins axi_control_0/s00_axi_aclk] [get_bd_pins axi_control_1/s00_axi_aclk] [get_bd_pins axi_control_2/s00_axi_aclk] [get_bd_pins axi_control_3/s00_axi_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
-# Hierarchical cell: group_0
-proc create_hier_cell_group_0 { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_group_0() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk
-  create_bd_pin -dir I adc_data_valid
-  create_bd_pin -dir I -type clk s_axi_lite_aclk
-  create_bd_pin -dir I -type rst axi_resetn
-  create_bd_pin -dir I -type rst reset
-  create_bd_pin -dir I config_port
-  create_bd_pin -dir I led_run
-  create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir I -from 15 -to 0 adc_data
-
-  # Create instance: axi_control_0, and set properties
-  set axi_control_0 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_0 ]
-
-  # Create instance: lockin_0, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_0
-  if { [catch {set lockin_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_0/lockin_0/reset]
-
-  # Create instance: concat_0, and set properties
-  set concat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_0 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_0
-
-
-  # Create instance: lockin_1, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_1
-  if { [catch {set lockin_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_0/lockin_1/reset]
-
-  # Create instance: axi_control_1, and set properties
-  set axi_control_1 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_1 ]
-
-  # Create instance: concat_1, and set properties
-  set concat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_1 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_1
-
-
-  # Create instance: lockin_2, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_2
-  if { [catch {set lockin_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_2 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_0/lockin_2/reset]
-
-  # Create instance: axi_control_2, and set properties
-  set axi_control_2 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_2 ]
-
-  # Create instance: concat_2, and set properties
-  set concat_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_2 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_2
-
-
-  # Create instance: lockin_3, and set properties
-  set block_name lockin_wrapper
-  set block_cell_name lockin_3
-  if { [catch {set lockin_3 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $lockin_3 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] [get_bd_pins /adc_224_0/group_0/lockin_3/reset]
-
-  # Create instance: axi_control_3, and set properties
-  set axi_control_3 [ create_bd_cell -type ip -vlnv user.org:user:controller_lockin:1.0 axi_control_3 ]
-
-  # Create instance: concat_3, and set properties
-  set concat_3 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat_3 ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {32} \
-    CONFIG.IN1_WIDTH {32} \
-  ] $concat_3
-
-
-  # Create instance: concat, and set properties
-  set concat [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 concat ]
-  set_property -dict [list \
-    CONFIG.IN0_WIDTH {64} \
-    CONFIG.IN1_WIDTH {64} \
-    CONFIG.IN2_WIDTH {64} \
-    CONFIG.IN3_WIDTH {64} \
-    CONFIG.NUM_PORTS {4} \
-  ] $concat
-
-
-  # Create instance: stop_if_fifo_full, and set properties
-  set stop_if_fifo_full [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 stop_if_fifo_full ]
-  set_property -dict [list \
-    CONFIG.M_HAS_TLAST {0} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {0} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $stop_if_fifo_full
-
-
-  # Create instance: count_dropped, and set properties
-  set block_name sing_counter_mod
-  set block_cell_name count_dropped
-  if { [catch {set count_dropped [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $count_dropped eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: fifo, and set properties
-  set fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 fifo ]
-  set_property -dict [list \
-    CONFIG.FIFO_DEPTH {4096} \
-    CONFIG.HAS_PROG_FULL {0} \
-    CONFIG.HAS_TLAST {0} \
-    CONFIG.IS_ACLK_ASYNC {0} \
-    CONFIG.TDATA_NUM_BYTES {32} \
-  ] $fifo
-
-
-  # Create instance: dump, and set properties
-  set block_name dump
-  set block_cell_name dump
-  if { [catch {set dump [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $dump eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: axis_subset_converter, and set properties
-  set axis_subset_converter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 axis_subset_converter ]
-  set_property -dict [list \
-    CONFIG.DEFAULT_TLAST {256} \
-    CONFIG.M_HAS_TLAST {1} \
-    CONFIG.M_HAS_TREADY {1} \
-    CONFIG.M_TDATA_NUM_BYTES {32} \
-    CONFIG.S_HAS_TREADY {1} \
-    CONFIG.S_TDATA_NUM_BYTES {32} \
-  ] $axis_subset_converter
-
-
-  # Create instance: dma, and set properties
-  set dma [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 dma ]
-  set_property -dict [list \
-    CONFIG.c_addr_width {32} \
-    CONFIG.c_include_mm2s {0} \
-    CONFIG.c_include_s2mm {1} \
-    CONFIG.c_include_sg {0} \
-    CONFIG.c_s2mm_burst_size {128} \
-    CONFIG.c_s_axis_s2mm_tdata_width {256} \
-    CONFIG.c_sg_length_width {26} \
-  ] $dma
-
-
-  # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins dma/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE]
-  connect_bd_intf_net -intf_net S00_AXI1_1 [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins axi_control_0/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI2_1 [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins axi_control_3/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins axi_control_2/S00_AXI]
-  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_control_1/S00_AXI]
-  connect_bd_intf_net -intf_net axis_subset_converter_M_AXIS [get_bd_intf_pins axis_subset_converter/M_AXIS] [get_bd_intf_pins dma/S_AXIS_S2MM]
-  connect_bd_intf_net -intf_net count_dropped_m_axis [get_bd_intf_pins count_dropped/m_axis] [get_bd_intf_pins fifo/S_AXIS]
-  connect_bd_intf_net -intf_net dma_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins dma/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net dump_m_axi [get_bd_intf_pins dump/m_axi] [get_bd_intf_pins axis_subset_converter/S_AXIS]
-  connect_bd_intf_net -intf_net fifo_M_AXIS [get_bd_intf_pins fifo/M_AXIS] [get_bd_intf_pins dump/s_axi]
-  connect_bd_intf_net -intf_net stop_if_fifo_full_M_AXIS [get_bd_intf_pins stop_if_fifo_full/M_AXIS] [get_bd_intf_pins count_dropped/s_axis]
-
-  # Create port connections
-  # All 4 lock-ins of a group share axi_control_0/dec_factor: the group stream is
-  # clocked by lockin_3 valid only, so the lanes must always decimate in lockstep.
-  connect_bd_net -net axi_control_dec_factor [get_bd_pins axi_control_0/dec_factor] [get_bd_pins lockin_0/dec_factor] [get_bd_pins lockin_1/dec_factor] [get_bd_pins lockin_2/dec_factor] [get_bd_pins lockin_3/dec_factor]
-  connect_bd_net -net axi_control_frequency [get_bd_pins axi_control_0/frequency] [get_bd_pins lockin_0/init_freq]
-  connect_bd_net -net axi_control_num_tlast [get_bd_pins axi_control_0/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_1 [get_bd_pins axi_control_1/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_2 [get_bd_pins axi_control_2/num_tlast]
-  connect_bd_net -net axi_control_num_tlast_3 [get_bd_pins axi_control_3/num_tlast]
-  connect_bd_net -net axi_control_phase [get_bd_pins axi_control_0/phase] [get_bd_pins lockin_0/init_phase]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins stop_if_fifo_full/aclk] [get_bd_pins fifo/s_axis_aclk] [get_bd_pins axis_subset_converter/aclk] [get_bd_pins dma/m_axi_s2mm_aclk] [get_bd_pins dump/clk] [get_bd_pins lockin_0/clk] [get_bd_pins lockin_3/clk] [get_bd_pins lockin_2/clk] [get_bd_pins lockin_1/clk] [get_bd_pins count_dropped/clk]
-  connect_bd_net -net concat_0_dout [get_bd_pins concat_0/dout] [get_bd_pins concat/In0]
-  connect_bd_net -net concat_1_dout [get_bd_pins concat_1/dout] [get_bd_pins concat/In1]
-  connect_bd_net -net concat_2_dout [get_bd_pins concat_2/dout] [get_bd_pins concat/In2]
-  connect_bd_net -net concat_3_dout [get_bd_pins concat_3/dout] [get_bd_pins concat/In3]
-  connect_bd_net -net concat_dout [get_bd_pins concat/dout] [get_bd_pins stop_if_fifo_full/s_axis_tdata]
-  connect_bd_net -net controller_lockin_0_frequency [get_bd_pins axi_control_1/frequency] [get_bd_pins lockin_1/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_1 [get_bd_pins axi_control_2/frequency] [get_bd_pins lockin_2/init_freq]
-  connect_bd_net -net controller_lockin_0_frequency_2 [get_bd_pins axi_control_3/frequency] [get_bd_pins lockin_3/init_freq]
-  connect_bd_net -net controller_lockin_0_phase [get_bd_pins axi_control_1/phase] [get_bd_pins lockin_1/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_1 [get_bd_pins axi_control_2/phase] [get_bd_pins lockin_2/init_phase]
-  connect_bd_net -net controller_lockin_0_phase_2 [get_bd_pins axi_control_3/phase] [get_bd_pins lockin_3/init_phase]
-  connect_bd_net -net count_dropped_counter_port [get_bd_pins count_dropped/counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins config_port] [get_bd_pins lockin_0/config_port] [get_bd_pins lockin_3/config_port] [get_bd_pins lockin_2/config_port] [get_bd_pins lockin_1/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins reset] [get_bd_pins lockin_0/reset] [get_bd_pins lockin_3/reset] [get_bd_pins lockin_2/reset] [get_bd_pins lockin_1/reset] [get_bd_pins count_dropped/rst]
-  connect_bd_net -net global_axi_control_0_run [get_bd_pins led_run] [get_bd_pins dump/run] [get_bd_pins lockin_0/run] [get_bd_pins lockin_3/run] [get_bd_pins lockin_2/run] [get_bd_pins lockin_1/run] [get_bd_pins count_dropped/run]
-  connect_bd_net -net lockin_0_output_q [get_bd_pins lockin_0/output_Q] [get_bd_pins concat_0/In1]
-  connect_bd_net -net lockin_output_Q [get_bd_pins lockin_1/output_Q] [get_bd_pins concat_1/In1]
-  connect_bd_net -net lockin_output_i [get_bd_pins lockin_0/output_I] [get_bd_pins concat_0/In0] [get_bd_pins axi_control_0/test_reg]
-  connect_bd_net -net lockin_output_q_1 [get_bd_pins lockin_2/output_Q] [get_bd_pins concat_2/In1]
-  connect_bd_net -net lockin_output_q_2 [get_bd_pins lockin_3/output_Q] [get_bd_pins concat_3/In1]
-  connect_bd_net -net lockin_output_valid3 [get_bd_pins lockin_3/output_valid] [get_bd_pins stop_if_fifo_full/s_axis_tvalid]
-  connect_bd_net -net lockin_wrapper_0_output_i [get_bd_pins lockin_1/output_I] [get_bd_pins concat_1/In0] [get_bd_pins axi_control_1/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_1 [get_bd_pins lockin_2/output_I] [get_bd_pins concat_2/In0] [get_bd_pins axi_control_2/test_reg]
-  connect_bd_net -net lockin_wrapper_0_output_i_2 [get_bd_pins lockin_3/output_I] [get_bd_pins concat_3/In0] [get_bd_pins axi_control_3/test_reg]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins dma/axi_resetn] [get_bd_pins axi_control_0/s00_axi_aresetn] [get_bd_pins axi_control_3/s00_axi_aresetn] [get_bd_pins axi_control_2/s00_axi_aresetn] [get_bd_pins axi_control_1/s00_axi_aresetn]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins stop_if_fifo_full/aresetn] [get_bd_pins fifo/s_axis_aresetn] [get_bd_pins axis_subset_converter/aresetn] [get_bd_pins lockin_0/aresetn] [get_bd_pins lockin_3/aresetn] [get_bd_pins lockin_2/aresetn] [get_bd_pins lockin_1/aresetn]
-  connect_bd_net -net stop_if_fifo_full_transfer_dropped [get_bd_pins stop_if_fifo_full/transfer_dropped] [get_bd_pins count_dropped/dropped]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins adc_data] [get_bd_pins lockin_0/adc_data] [get_bd_pins lockin_3/adc_data] [get_bd_pins lockin_2/adc_data] [get_bd_pins lockin_1/adc_data]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins adc_data_valid] [get_bd_pins lockin_0/adc_data_valid] [get_bd_pins lockin_3/adc_data_valid] [get_bd_pins lockin_2/adc_data_valid] [get_bd_pins lockin_1/adc_data_valid]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins dma/s_axi_lite_aclk] [get_bd_pins axi_control_0/s00_axi_aclk] [get_bd_pins axi_control_3/s00_axi_aclk] [get_bd_pins axi_control_2/s00_axi_aclk] [get_bd_pins axi_control_1/s00_axi_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
-# Hierarchical cell: adc_226_0
-proc create_hier_cell_adc_226_0 { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_adc_226_0() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI4
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI5
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI6
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI7
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE1
-
 
   # Create pins
   create_bd_pin -dir I -type clk clk
@@ -3378,400 +458,46 @@ proc create_hier_cell_adc_226_0 { parentCell nameHier } {
   create_bd_pin -dir I led_config
   create_bd_pin -dir I led_run
   create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port1
+  for {set g 0} {$g < $ng} {incr g} {
+    create_bd_pin -dir O -from 63 -to 0 valid_counter_port[index_suffix $g]
+  }
 
-  # Create instance: group_0
-  create_hier_cell_group_0_2 $hier_obj group_0
+  # Create instances: group_0 ... group_3
+  for {set g 0} {$g < $ng} {incr g} {
+    create_group $hier_obj group_$g
+  }
 
-  # Create instance: group_1
-  create_hier_cell_group_1_2 $hier_obj group_1
-
-  # Create instance: avg12_0 (average of the 12 RFDC samples per clock), and set properties
-  set block_name avg12
-  set block_cell_name avg12_0
-  if { [catch {set avg12_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $avg12_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-
+  # Create instance: avg12_0 (average of the 12 RFDC samples per clock)
+  create_module_cell avg12 avg12_0
 
   # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins group_1/S00_AXI1] [get_bd_intf_pins S00_AXI4]
-  connect_bd_intf_net -intf_net Conn2 [get_bd_intf_pins group_1/S00_AXI] [get_bd_intf_pins S00_AXI5]
-  connect_bd_intf_net -intf_net Conn3 [get_bd_intf_pins group_1/S00_AXI3] [get_bd_intf_pins S00_AXI6]
-  connect_bd_intf_net -intf_net Conn4 [get_bd_intf_pins group_1/S00_AXI2] [get_bd_intf_pins S00_AXI7]
-  connect_bd_intf_net -intf_net Conn5 [get_bd_intf_pins group_1/M_AXI_S2MM] [get_bd_intf_pins M_AXI_S2MM1]
-  connect_bd_intf_net -intf_net Conn6 [get_bd_intf_pins group_1/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE1]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins group_0/S00_AXI3]
-  connect_bd_intf_net -intf_net lockin_instance_0_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins group_0/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M02_AXI [get_bd_intf_pins S00_AXI] [get_bd_intf_pins group_0/S00_AXI]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M03_AXI [get_bd_intf_pins S_AXI_LITE] [get_bd_intf_pins group_0/S_AXI_LITE]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M04_AXI [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins group_0/S00_AXI1]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M05_AXI [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins group_0/S00_AXI2]
+  for {set g 0} {$g < $ng} {incr g} {
+    for {set k 0} {$k < $lockins_per_group} {incr k} {
+      connect_bd_intf_net -intf_net S_AXI_G${g}_CTRL${k}_1 [get_bd_intf_pins S_AXI_G${g}_CTRL$k] [get_bd_intf_pins group_$g/S_AXI_CTRL$k]
+    }
+    connect_bd_intf_net -intf_net S_AXI_LITE_G${g}_1 [get_bd_intf_pins S_AXI_LITE_G$g] [get_bd_intf_pins group_$g/S_AXI_LITE]
+    connect_bd_intf_net -intf_net group_${g}_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM_G$g] [get_bd_intf_pins group_$g/M_AXI_S2MM]
+  }
 
   # Create port connections
   connect_bd_net -net adc_data_1 [get_bd_pins adc_data] [get_bd_pins avg12_0/adc_data]
-  connect_bd_net -net adc_data_3 [get_bd_pins avg12_0/data_out] [get_bd_pins group_1/adc_data] [get_bd_pins group_0/adc_data]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins avg12_0/clk] [get_bd_pins group_1/clk] [get_bd_pins group_0/clk]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins led_config] [get_bd_pins group_1/config_port] [get_bd_pins group_0/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins led_reset] [get_bd_pins group_1/reset] [get_bd_pins group_0/reset]
-  connect_bd_net -net group_1_valid_counter_port [get_bd_pins group_1/valid_counter_port] [get_bd_pins valid_counter_port1]
-  connect_bd_net -net lockin_instance_0_valid_counter_port [get_bd_pins group_0/valid_counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins group_1/axi_resetn] [get_bd_pins group_0/axi_resetn]
-  connect_bd_net -net run [get_bd_pins led_run] [get_bd_pins group_1/led_run] [get_bd_pins group_0/led_run]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins group_1/s_axis_aresetn] [get_bd_pins group_0/s_axis_aresetn]
   connect_bd_net -net adc_data_valid_raw [get_bd_pins adc_data_valid] [get_bd_pins avg12_0/adc_data_valid]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins avg12_0/data_valid_out] [get_bd_pins group_1/adc_data_valid] [get_bd_pins group_0/adc_data_valid]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins group_1/s_axi_lite_aclk] [get_bd_pins group_0/s_axi_lite_aclk]
+  connect_bd_net -net avg12_data_out [get_bd_pins avg12_0/data_out] [indexed_pins group_ adc_data $ng]
+  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins avg12_0/data_valid_out] [indexed_pins group_ adc_data_valid $ng]
+  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins avg12_0/clk] [indexed_pins group_ clk $ng]
+  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins led_config] [indexed_pins group_ config_port $ng]
+  connect_bd_net -net global_axi_control_0_reset [get_bd_pins led_reset] [indexed_pins group_ reset $ng]
+  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [indexed_pins group_ axi_resetn $ng]
+  connect_bd_net -net run [get_bd_pins led_run] [indexed_pins group_ led_run $ng]
+  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [indexed_pins group_ s_axis_aresetn $ng]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [indexed_pins group_ s_axi_lite_aclk $ng]
+  for {set g 0} {$g < $ng} {incr g} {
+    connect_bd_net -net group_${g}_valid_counter_port [get_bd_pins group_$g/valid_counter_port] [get_bd_pins valid_counter_port[index_suffix $g]]
+  }
 
   # Restore current instance
   current_bd_instance $oldCurInst
 }
-
-# Hierarchical cell: adc_224_1
-proc create_hier_cell_adc_224_1 { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_adc_224_1() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI4
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI5
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI6
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI7
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI8
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI9
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI10
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI11
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI12
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI13
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI14
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI15
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE3
-
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk
-  create_bd_pin -dir I -from 191 -to 0 adc_data
-  create_bd_pin -dir I adc_data_valid
-  create_bd_pin -dir I -type clk s_axi_lite_aclk
-  create_bd_pin -dir I -type rst axi_resetn
-  create_bd_pin -dir I -type rst led_reset
-  create_bd_pin -dir I led_config
-  create_bd_pin -dir I led_run
-  create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port1
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port2
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port3
-
-  # Create instance: group_0
-  create_hier_cell_group_0_1 $hier_obj group_0
-
-  # Create instance: group_1
-  create_hier_cell_group_1_1 $hier_obj group_1
-
-  # Create instance: group_2
-  create_hier_cell_group_2_1 $hier_obj group_2
-
-  # Create instance: group_3
-  create_hier_cell_group_3_1 $hier_obj group_3
-
-  # Create instance: avg12_0 (average of the 12 RFDC samples per clock), and set properties
-  set block_name avg12
-  set block_cell_name avg12_0
-  if { [catch {set avg12_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $avg12_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-
-
-  # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins group_1/S00_AXI1] [get_bd_intf_pins S00_AXI4]
-  connect_bd_intf_net -intf_net Conn2 [get_bd_intf_pins group_1/S00_AXI] [get_bd_intf_pins S00_AXI5]
-  connect_bd_intf_net -intf_net Conn3 [get_bd_intf_pins group_1/S00_AXI3] [get_bd_intf_pins S00_AXI6]
-  connect_bd_intf_net -intf_net Conn4 [get_bd_intf_pins group_1/S00_AXI2] [get_bd_intf_pins S00_AXI7]
-  connect_bd_intf_net -intf_net Conn5 [get_bd_intf_pins group_1/M_AXI_S2MM] [get_bd_intf_pins M_AXI_S2MM1]
-  connect_bd_intf_net -intf_net Conn6 [get_bd_intf_pins group_1/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE1]
-  connect_bd_intf_net -intf_net Conn7 [get_bd_intf_pins group_2/S00_AXI1] [get_bd_intf_pins S00_AXI8]
-  connect_bd_intf_net -intf_net Conn8 [get_bd_intf_pins group_2/S00_AXI] [get_bd_intf_pins S00_AXI9]
-  connect_bd_intf_net -intf_net Conn9 [get_bd_intf_pins group_2/S00_AXI3] [get_bd_intf_pins S00_AXI10]
-  connect_bd_intf_net -intf_net Conn10 [get_bd_intf_pins group_2/S00_AXI2] [get_bd_intf_pins S00_AXI11]
-  connect_bd_intf_net -intf_net Conn11 [get_bd_intf_pins group_2/M_AXI_S2MM] [get_bd_intf_pins M_AXI_S2MM2]
-  connect_bd_intf_net -intf_net Conn12 [get_bd_intf_pins group_2/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE2]
-  connect_bd_intf_net -intf_net Conn13 [get_bd_intf_pins group_3/S00_AXI1] [get_bd_intf_pins S00_AXI12]
-  connect_bd_intf_net -intf_net Conn14 [get_bd_intf_pins group_3/S00_AXI] [get_bd_intf_pins S00_AXI13]
-  connect_bd_intf_net -intf_net Conn15 [get_bd_intf_pins group_3/S00_AXI3] [get_bd_intf_pins S00_AXI14]
-  connect_bd_intf_net -intf_net Conn16 [get_bd_intf_pins group_3/S00_AXI2] [get_bd_intf_pins S00_AXI15]
-  connect_bd_intf_net -intf_net Conn17 [get_bd_intf_pins group_3/M_AXI_S2MM] [get_bd_intf_pins M_AXI_S2MM3]
-  connect_bd_intf_net -intf_net Conn18 [get_bd_intf_pins group_3/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE3]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins group_0/S00_AXI3]
-  connect_bd_intf_net -intf_net lockin_instance_0_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins group_0/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M02_AXI [get_bd_intf_pins S00_AXI] [get_bd_intf_pins group_0/S00_AXI]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M03_AXI [get_bd_intf_pins S_AXI_LITE] [get_bd_intf_pins group_0/S_AXI_LITE]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M04_AXI [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins group_0/S00_AXI1]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M05_AXI [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins group_0/S00_AXI2]
-
-  # Create port connections
-  connect_bd_net -net adc_data_1 [get_bd_pins adc_data] [get_bd_pins avg12_0/adc_data]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins avg12_0/clk] [get_bd_pins group_1/clk] [get_bd_pins group_2/clk] [get_bd_pins group_3/clk] [get_bd_pins group_0/clk]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins led_config] [get_bd_pins group_2/config_port] [get_bd_pins group_3/config_port] [get_bd_pins group_1/config_port] [get_bd_pins group_0/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins led_reset] [get_bd_pins group_2/reset] [get_bd_pins group_3/reset] [get_bd_pins group_1/reset] [get_bd_pins group_0/reset]
-  connect_bd_net -net group_1_valid_counter_port [get_bd_pins group_1/valid_counter_port] [get_bd_pins valid_counter_port1]
-  connect_bd_net -net group_2_valid_counter_port [get_bd_pins group_2/valid_counter_port] [get_bd_pins valid_counter_port2]
-  connect_bd_net -net group_3_valid_counter_port [get_bd_pins group_3/valid_counter_port] [get_bd_pins valid_counter_port3]
-  connect_bd_net -net lockin_instance_0_valid_counter_port [get_bd_pins group_0/valid_counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins group_2/axi_resetn] [get_bd_pins group_3/axi_resetn] [get_bd_pins group_1/axi_resetn] [get_bd_pins group_0/axi_resetn]
-  connect_bd_net -net run [get_bd_pins led_run] [get_bd_pins group_2/led_run] [get_bd_pins group_3/led_run] [get_bd_pins group_1/led_run] [get_bd_pins group_0/led_run]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins group_2/s_axis_aresetn] [get_bd_pins group_3/s_axis_aresetn] [get_bd_pins group_1/s_axis_aresetn] [get_bd_pins group_0/s_axis_aresetn]
-  connect_bd_net -net adc_data_valid_raw [get_bd_pins adc_data_valid] [get_bd_pins avg12_0/adc_data_valid]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins avg12_0/data_valid_out] [get_bd_pins group_2/adc_data_valid] [get_bd_pins group_3/adc_data_valid] [get_bd_pins group_1/adc_data_valid] [get_bd_pins group_0/adc_data_valid]
-  connect_bd_net -net avg12_data_out [get_bd_pins avg12_0/data_out] [get_bd_pins group_3/adc_data] [get_bd_pins group_2/adc_data] [get_bd_pins group_0/adc_data] [get_bd_pins group_1/adc_data]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins group_2/s_axi_lite_aclk] [get_bd_pins group_3/s_axi_lite_aclk] [get_bd_pins group_1/s_axi_lite_aclk] [get_bd_pins group_0/s_axi_lite_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
-# Hierarchical cell: adc_224_0
-proc create_hier_cell_adc_224_0 { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_adc_224_0() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI4
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI5
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI6
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI7
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE1
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI8
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI9
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI10
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI11
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE2
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI12
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI13
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI14
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI15
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M_AXI_S2MM3
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_LITE3
-
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk
-  create_bd_pin -dir I -from 191 -to 0 adc_data
-  create_bd_pin -dir I adc_data_valid
-  create_bd_pin -dir I -type clk s_axi_lite_aclk
-  create_bd_pin -dir I -type rst axi_resetn
-  create_bd_pin -dir I -type rst led_reset
-  create_bd_pin -dir I led_config
-  create_bd_pin -dir I led_run
-  create_bd_pin -dir I -type rst s_axis_aresetn
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port1
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port2
-  create_bd_pin -dir O -from 63 -to 0 valid_counter_port3
-
-  # Create instance: group_0
-  create_hier_cell_group_0 $hier_obj group_0
-
-  # Create instance: group_1
-  create_hier_cell_group_1 $hier_obj group_1
-
-  # Create instance: group_2
-  create_hier_cell_group_2 $hier_obj group_2
-
-  # Create instance: group_3
-  create_hier_cell_group_3 $hier_obj group_3
-
-  # Create instance: avg12_0 (average of the 12 RFDC samples per clock), and set properties
-  set block_name avg12
-  set block_cell_name avg12_0
-  if { [catch {set avg12_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $avg12_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-
-
-  # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins group_1/S00_AXI1] [get_bd_intf_pins S00_AXI4]
-  connect_bd_intf_net -intf_net Conn2 [get_bd_intf_pins group_1/S00_AXI] [get_bd_intf_pins S00_AXI5]
-  connect_bd_intf_net -intf_net Conn3 [get_bd_intf_pins group_1/S00_AXI3] [get_bd_intf_pins S00_AXI6]
-  connect_bd_intf_net -intf_net Conn4 [get_bd_intf_pins group_1/S00_AXI2] [get_bd_intf_pins S00_AXI7]
-  connect_bd_intf_net -intf_net Conn5 [get_bd_intf_pins group_1/M_AXI_S2MM] [get_bd_intf_pins M_AXI_S2MM1]
-  connect_bd_intf_net -intf_net Conn6 [get_bd_intf_pins group_1/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE1]
-  connect_bd_intf_net -intf_net Conn7 [get_bd_intf_pins group_2/S00_AXI1] [get_bd_intf_pins S00_AXI8]
-  connect_bd_intf_net -intf_net Conn8 [get_bd_intf_pins group_2/S00_AXI] [get_bd_intf_pins S00_AXI9]
-  connect_bd_intf_net -intf_net Conn9 [get_bd_intf_pins group_2/S00_AXI3] [get_bd_intf_pins S00_AXI10]
-  connect_bd_intf_net -intf_net Conn10 [get_bd_intf_pins group_2/S00_AXI2] [get_bd_intf_pins S00_AXI11]
-  connect_bd_intf_net -intf_net Conn11 [get_bd_intf_pins group_2/M_AXI_S2MM] [get_bd_intf_pins M_AXI_S2MM2]
-  connect_bd_intf_net -intf_net Conn12 [get_bd_intf_pins group_2/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE2]
-  connect_bd_intf_net -intf_net Conn13 [get_bd_intf_pins group_3/S00_AXI1] [get_bd_intf_pins S00_AXI12]
-  connect_bd_intf_net -intf_net Conn14 [get_bd_intf_pins group_3/S00_AXI] [get_bd_intf_pins S00_AXI13]
-  connect_bd_intf_net -intf_net Conn15 [get_bd_intf_pins group_3/S00_AXI3] [get_bd_intf_pins S00_AXI14]
-  connect_bd_intf_net -intf_net Conn16 [get_bd_intf_pins group_3/S00_AXI2] [get_bd_intf_pins S00_AXI15]
-  connect_bd_intf_net -intf_net Conn17 [get_bd_intf_pins group_3/M_AXI_S2MM] [get_bd_intf_pins M_AXI_S2MM3]
-  connect_bd_intf_net -intf_net Conn18 [get_bd_intf_pins group_3/S_AXI_LITE] [get_bd_intf_pins S_AXI_LITE3]
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins S00_AXI3] [get_bd_intf_pins group_0/S00_AXI3]
-  connect_bd_intf_net -intf_net lockin_instance_0_M_AXI_S2MM [get_bd_intf_pins M_AXI_S2MM] [get_bd_intf_pins group_0/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M02_AXI [get_bd_intf_pins S00_AXI] [get_bd_intf_pins group_0/S00_AXI]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M03_AXI [get_bd_intf_pins S_AXI_LITE] [get_bd_intf_pins group_0/S_AXI_LITE]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M04_AXI [get_bd_intf_pins S00_AXI1] [get_bd_intf_pins group_0/S00_AXI1]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M05_AXI [get_bd_intf_pins S00_AXI2] [get_bd_intf_pins group_0/S00_AXI2]
-
-  # Create port connections
-  connect_bd_net -net adc_data_1 [get_bd_pins adc_data] [get_bd_pins avg12_0/adc_data]
-  connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk] [get_bd_pins avg12_0/clk] [get_bd_pins group_1/clk] [get_bd_pins group_2/clk] [get_bd_pins group_3/clk] [get_bd_pins group_0/clk]
-  connect_bd_net -net global_axi_control_0_config_port [get_bd_pins led_config] [get_bd_pins group_2/config_port] [get_bd_pins group_3/config_port] [get_bd_pins group_1/config_port] [get_bd_pins group_0/config_port]
-  connect_bd_net -net global_axi_control_0_reset [get_bd_pins led_reset] [get_bd_pins group_2/reset] [get_bd_pins group_3/reset] [get_bd_pins group_1/reset] [get_bd_pins group_0/reset]
-  connect_bd_net -net group_1_valid_counter_port [get_bd_pins group_1/valid_counter_port] [get_bd_pins valid_counter_port1]
-  connect_bd_net -net group_2_valid_counter_port [get_bd_pins group_2/valid_counter_port] [get_bd_pins valid_counter_port2]
-  connect_bd_net -net group_3_valid_counter_port [get_bd_pins group_3/valid_counter_port] [get_bd_pins valid_counter_port3]
-  connect_bd_net -net lockin_instance_0_valid_counter_port [get_bd_pins group_0/valid_counter_port] [get_bd_pins valid_counter_port]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins axi_resetn] [get_bd_pins group_2/axi_resetn] [get_bd_pins group_3/axi_resetn] [get_bd_pins group_1/axi_resetn] [get_bd_pins group_0/axi_resetn]
-  connect_bd_net -net run [get_bd_pins led_run] [get_bd_pins group_2/led_run] [get_bd_pins group_3/led_run] [get_bd_pins group_1/led_run] [get_bd_pins group_0/led_run]
-  connect_bd_net -net s_axis_aresetn_1 [get_bd_pins s_axis_aresetn] [get_bd_pins group_2/s_axis_aresetn] [get_bd_pins group_3/s_axis_aresetn] [get_bd_pins group_1/s_axis_aresetn] [get_bd_pins group_0/s_axis_aresetn]
-  connect_bd_net -net adc_data_valid_raw [get_bd_pins adc_data_valid] [get_bd_pins avg12_0/adc_data_valid]
-  connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins avg12_0/data_valid_out] [get_bd_pins group_2/adc_data_valid] [get_bd_pins group_3/adc_data_valid] [get_bd_pins group_1/adc_data_valid] [get_bd_pins group_0/adc_data_valid]
-  connect_bd_net -net avg12_data_out [get_bd_pins avg12_0/data_out] [get_bd_pins group_1/adc_data] [get_bd_pins group_0/adc_data] [get_bd_pins group_2/adc_data] [get_bd_pins group_3/adc_data]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_lite_aclk] [get_bd_pins group_2/s_axi_lite_aclk] [get_bd_pins group_3/s_axi_lite_aclk] [get_bd_pins group_1/s_axi_lite_aclk] [get_bd_pins group_0/s_axi_lite_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
 
 # Procedure to create entire design; Provide argument to make
 # procedure reusable. If parentCell is "", will use root.
@@ -3779,6 +505,8 @@ proc create_root_design { parentCell } {
 
   variable script_folder
   variable design_name
+  variable lockins_per_group
+  variable groups_per_adc
 
   if { $parentCell eq "" } {
      set parentCell [get_bd_cells /]
@@ -4201,39 +929,17 @@ Port;FD4A0000;FD4AFFFF;0|FPD;DPDMA;FD4C0000;FD4CFFFF;0|FPD;DDR_XMPU5_CFG;FD05000
   # Create instance: counters, and set properties
   set counters [ create_bd_cell -type ip -vlnv user.org:user:counters:1.1 counters ]
 
-  # Create instance: adc_224_0
-  create_hier_cell_adc_224_0 [current_bd_instance .] adc_224_0
-
-  # Create instance: adc_224_1
-  create_hier_cell_adc_224_1 [current_bd_instance .] adc_224_1
-
-  # Create instance: adc_226_0
-  create_hier_cell_adc_226_0 [current_bd_instance .] adc_226_0
-
-  # Create instance: xlconstant_0, and set properties
-  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
-  set_property -dict [list \
-    CONFIG.CONST_VAL {0} \
-    CONFIG.CONST_WIDTH {64} \
-  ] $xlconstant_0
-
+  # Create instances: adc_224_0, adc_224_1, adc_226_0
+  set adcs {adc_224_0 adc_224_1 adc_226_0}
+  foreach adc $adcs {
+    create_adc [current_bd_instance .] $adc
+  }
 
   # Create interface connections
-  connect_bd_intf_net -intf_net S00_AXI3_1 [get_bd_intf_pins adc_224_0/S00_AXI3] [get_bd_intf_pins zynq_ultra_ps_axi_periph/M06_AXI]
   connect_bd_intf_net -intf_net adc0_clk_1 [get_bd_intf_ports adc0_clk] [get_bd_intf_pins rfdc/adc0_clk]
   connect_bd_intf_net -intf_net adc2_clk_1 [get_bd_intf_ports adc2_clk] [get_bd_intf_pins rfdc/adc2_clk]
-  connect_bd_intf_net -intf_net adc_224_1_M_AXI_S2MM [get_bd_intf_pins adc_224_1/M_AXI_S2MM] [get_bd_intf_pins axi_smc/S04_AXI]
-  connect_bd_intf_net -intf_net adc_224_1_M_AXI_S2MM1 [get_bd_intf_pins adc_224_1/M_AXI_S2MM1] [get_bd_intf_pins axi_smc/S05_AXI]
-  connect_bd_intf_net -intf_net adc_224_1_M_AXI_S2MM2 [get_bd_intf_pins adc_224_1/M_AXI_S2MM2] [get_bd_intf_pins axi_smc/S06_AXI]
-  connect_bd_intf_net -intf_net adc_224_1_M_AXI_S2MM3 [get_bd_intf_pins adc_224_1/M_AXI_S2MM3] [get_bd_intf_pins axi_smc/S07_AXI]
-  connect_bd_intf_net -intf_net adc_226_0_M_AXI_S2MM [get_bd_intf_pins adc_226_0/M_AXI_S2MM] [get_bd_intf_pins axi_smc/S08_AXI]
-  connect_bd_intf_net -intf_net adc_226_0_M_AXI_S2MM1 [get_bd_intf_pins adc_226_0/M_AXI_S2MM1] [get_bd_intf_pins axi_smc/S09_AXI]
   connect_bd_intf_net -intf_net axi_smc_M00_AXI [get_bd_intf_pins zynq_ultra_ps/S_AXI_HPC0_FPD] [get_bd_intf_pins axi_smc/M00_AXI]
   connect_bd_intf_net -intf_net axi_smc_M01_AXI [get_bd_intf_pins axi_smc/M01_AXI] [get_bd_intf_pins zynq_ultra_ps/S_AXI_HPC1_FPD]
-  connect_bd_intf_net -intf_net lockin_instance_0_M_AXI_S2MM [get_bd_intf_pins axi_smc/S00_AXI] [get_bd_intf_pins adc_224_0/M_AXI_S2MM]
-  connect_bd_intf_net -intf_net lockin_instance_1_M_AXI_S2MM [get_bd_intf_pins adc_224_0/M_AXI_S2MM1] [get_bd_intf_pins axi_smc/S01_AXI]
-  connect_bd_intf_net -intf_net lockin_instance_2_M_AXI_S2MM [get_bd_intf_pins adc_224_0/M_AXI_S2MM2] [get_bd_intf_pins axi_smc/S02_AXI]
-  connect_bd_intf_net -intf_net lockin_instance_3_M_AXI_S2MM [get_bd_intf_pins adc_224_0/M_AXI_S2MM3] [get_bd_intf_pins axi_smc/S03_AXI]
   connect_bd_intf_net -intf_net sysref_in_1 [get_bd_intf_ports sysref_in] [get_bd_intf_pins rfdc/sysref_in]
   connect_bd_intf_net -intf_net vin0_01_1 [get_bd_intf_ports vin0_01] [get_bd_intf_pins rfdc/vin0_01]
   connect_bd_intf_net -intf_net vin0_23_1 [get_bd_intf_ports vin0_23] [get_bd_intf_pins rfdc/vin0_23]
@@ -4241,68 +947,32 @@ Port;FD4A0000;FD4AFFFF;0|FPD;DPDMA;FD4C0000;FD4CFFFF;0|FPD;DDR_XMPU5_CFG;FD05000
   connect_bd_intf_net -intf_net zynq_ultra_ps_M_AXI_HPM0_FPD [get_bd_intf_pins zynq_ultra_ps/M_AXI_HPM0_FPD] [get_bd_intf_pins zynq_ultra_ps_axi_periph/S00_AXI]
   connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M00_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M00_AXI] [get_bd_intf_pins counters/S00_AXI]
   connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M01_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M01_AXI] [get_bd_intf_pins global_axi_control/S00_AXI]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M02_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M02_AXI] [get_bd_intf_pins adc_224_0/S00_AXI]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M03_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M03_AXI] [get_bd_intf_pins adc_224_0/S_AXI_LITE]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M04_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M04_AXI] [get_bd_intf_pins adc_224_0/S00_AXI1]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M05_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M05_AXI] [get_bd_intf_pins adc_224_0/S00_AXI2]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M07_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M07_AXI] [get_bd_intf_pins adc_224_0/S00_AXI4]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M08_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M08_AXI] [get_bd_intf_pins adc_224_0/S00_AXI5]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M09_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M09_AXI] [get_bd_intf_pins adc_224_0/S00_AXI6]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M10_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M10_AXI] [get_bd_intf_pins adc_224_0/S00_AXI7]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M11_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M11_AXI] [get_bd_intf_pins adc_224_0/S_AXI_LITE1]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M12_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M12_AXI] [get_bd_intf_pins adc_224_0/S00_AXI8]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M13_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M13_AXI] [get_bd_intf_pins adc_224_0/S00_AXI9]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M14_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M14_AXI] [get_bd_intf_pins adc_224_0/S00_AXI10]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M15_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M15_AXI] [get_bd_intf_pins adc_224_0/S00_AXI11]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M16_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M16_AXI] [get_bd_intf_pins adc_224_0/S_AXI_LITE2]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M17_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M17_AXI] [get_bd_intf_pins adc_224_0/S00_AXI12]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M18_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M18_AXI] [get_bd_intf_pins adc_224_0/S00_AXI13]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M19_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M19_AXI] [get_bd_intf_pins adc_224_0/S00_AXI14]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M20_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M20_AXI] [get_bd_intf_pins adc_224_0/S00_AXI15]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M21_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M21_AXI] [get_bd_intf_pins adc_224_0/S_AXI_LITE3]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M22_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M22_AXI] [get_bd_intf_pins adc_224_1/S00_AXI1]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M23_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M23_AXI] [get_bd_intf_pins adc_224_1/S00_AXI]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M24_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M24_AXI] [get_bd_intf_pins adc_224_1/S00_AXI3]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M25_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M25_AXI] [get_bd_intf_pins adc_224_1/S00_AXI2]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M26_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M26_AXI] [get_bd_intf_pins adc_224_1/S_AXI_LITE]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M27_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M27_AXI] [get_bd_intf_pins adc_224_1/S00_AXI4]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M28_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M28_AXI] [get_bd_intf_pins adc_224_1/S00_AXI5]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M29_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M29_AXI] [get_bd_intf_pins adc_224_1/S00_AXI6]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M30_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M30_AXI] [get_bd_intf_pins adc_224_1/S00_AXI7]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M31_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M31_AXI] [get_bd_intf_pins adc_224_1/S_AXI_LITE1]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M32_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M32_AXI] [get_bd_intf_pins adc_224_1/S00_AXI8]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M33_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M33_AXI] [get_bd_intf_pins adc_224_1/S00_AXI9]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M34_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M34_AXI] [get_bd_intf_pins rfdc/s_axi]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M35_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M35_AXI] [get_bd_intf_pins sync_start/S00_AXI]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M36_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M36_AXI] [get_bd_intf_pins adc_224_1/S00_AXI10]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M37_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M37_AXI] [get_bd_intf_pins adc_224_1/S00_AXI11]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M38_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M38_AXI] [get_bd_intf_pins adc_224_1/S_AXI_LITE2]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M39_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M39_AXI] [get_bd_intf_pins adc_224_1/S00_AXI12]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M40_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M40_AXI] [get_bd_intf_pins adc_224_1/S00_AXI13]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M41_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M41_AXI] [get_bd_intf_pins adc_224_1/S00_AXI14]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M42_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M42_AXI] [get_bd_intf_pins adc_224_1/S00_AXI15]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M43_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M43_AXI] [get_bd_intf_pins adc_224_1/S_AXI_LITE3]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M44_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M44_AXI] [get_bd_intf_pins adc_226_0/S00_AXI1]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M45_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M45_AXI] [get_bd_intf_pins adc_226_0/S00_AXI]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M46_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M46_AXI] [get_bd_intf_pins adc_226_0/S00_AXI3]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M47_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M47_AXI] [get_bd_intf_pins adc_226_0/S00_AXI2]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M48_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M48_AXI] [get_bd_intf_pins adc_226_0/S_AXI_LITE]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M49_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M49_AXI] [get_bd_intf_pins adc_226_0/S00_AXI4]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M50_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M50_AXI] [get_bd_intf_pins adc_226_0/S00_AXI5]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M51_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M51_AXI] [get_bd_intf_pins adc_226_0/S00_AXI6]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M52_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M52_AXI] [get_bd_intf_pins adc_226_0/S00_AXI7]
-  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M53_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M53_AXI] [get_bd_intf_pins adc_226_0/S_AXI_LITE1]
+  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M02_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M02_AXI] [get_bd_intf_pins rfdc/s_axi]
+  connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_M03_AXI [get_bd_intf_pins zynq_ultra_ps_axi_periph/M03_AXI] [get_bd_intf_pins sync_start/S00_AXI]
+
+  # Each group takes 5 interconnect masters (4 controllers + DMA) from M04 on,
+  # 12 groups x 5 + 4 = 64, the axi_interconnect maximum.
+  # Each group DMA S2MM master takes one axi_smc slave port (S00 ... S11).
+  set mi 4
+  set si 0
+  foreach adc $adcs {
+    for {set g 0} {$g < $groups_per_adc} {incr g} {
+      for {set k 0} {$k < $lockins_per_group} {incr k} {
+        set m [format M%02d_AXI $mi]
+        connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_$m [get_bd_intf_pins zynq_ultra_ps_axi_periph/$m] [get_bd_intf_pins $adc/S_AXI_G${g}_CTRL$k]
+        incr mi
+      }
+      set m [format M%02d_AXI $mi]
+      connect_bd_intf_net -intf_net zynq_ultra_ps_axi_periph_$m [get_bd_intf_pins zynq_ultra_ps_axi_periph/$m] [get_bd_intf_pins $adc/S_AXI_LITE_G$g]
+      incr mi
+
+      set s [format S%02d_AXI $si]
+      connect_bd_intf_net -intf_net ${adc}_M_AXI_S2MM_G$g [get_bd_intf_pins $adc/M_AXI_S2MM_G$g] [get_bd_intf_pins axi_smc/$s]
+      incr si
+    }
+  }
 
   # Create port connections
-  connect_bd_net -net adc_224_0_valid_counter_port1 [get_bd_pins adc_224_0/valid_counter_port1] [get_bd_pins counters/counter_01]
-  connect_bd_net -net adc_224_0_valid_counter_port2 [get_bd_pins adc_224_0/valid_counter_port2] [get_bd_pins counters/counter_02]
-  connect_bd_net -net adc_224_0_valid_counter_port3 [get_bd_pins adc_224_0/valid_counter_port3] [get_bd_pins counters/counter_03]
-  connect_bd_net -net adc_224_1_valid_counter_port [get_bd_pins adc_224_1/valid_counter_port] [get_bd_pins counters/counter_04]
-  connect_bd_net -net adc_224_1_valid_counter_port1 [get_bd_pins adc_224_1/valid_counter_port1] [get_bd_pins counters/counter_05]
-  connect_bd_net -net adc_224_1_valid_counter_port2 [get_bd_pins adc_224_1/valid_counter_port2] [get_bd_pins counters/counter_06]
-  connect_bd_net -net adc_224_1_valid_counter_port3 [get_bd_pins adc_224_1/valid_counter_port3] [get_bd_pins counters/counter_07]
-  connect_bd_net -net adc_226_0_valid_counter_port [get_bd_pins adc_226_0/valid_counter_port] [get_bd_pins counters/counter_08]
-  connect_bd_net -net adc_226_0_valid_counter_port1 [get_bd_pins adc_226_0/valid_counter_port1] [get_bd_pins counters/counter_09]
   connect_bd_net -net clk_wiz_clk_153_6_MHZ [get_bd_pins clk_wiz/clk_122_88_MHZ] [get_bd_pins rfdc/m0_axis_aclk] [get_bd_pins zynq_ultra_ps/saxihpc0_fpd_aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins zynq_ultra_ps/saxihpc1_fpd_aclk] [get_bd_pins global_axi_control/clk_adc] [get_bd_pins sync_start/synced_clk] [get_bd_pins axi_smc/aclk] [get_bd_pins adc_224_0/clk] [get_bd_pins adc_224_1/clk] [get_bd_pins adc_226_0/clk] [get_bd_pins rfdc/m2_axis_aclk]
   connect_bd_net -net clk_wiz_locked [get_bd_pins clk_wiz/locked] [get_bd_pins proc_sys_reset_0/dcm_locked]
   connect_bd_net -net counters_led_b [get_bd_pins counters/led_b] [get_bd_ports led_b]
@@ -4312,7 +982,6 @@ Port;FD4A0000;FD4AFFFF;0|FPD;DPDMA;FD4C0000;FD4CFFFF;0|FPD;DDR_XMPU5_CFG;FD05000
   connect_bd_net -net from_pps_0_1 [get_bd_ports from_pps] [get_bd_pins sync_start/from_pps]
   connect_bd_net -net global_axi_control_0_config_port [get_bd_pins global_axi_control/config_port] [get_bd_ports led_config] [get_bd_pins adc_224_0/led_config] [get_bd_pins adc_224_1/led_config] [get_bd_pins adc_226_0/led_config]
   connect_bd_net -net global_axi_control_0_reset [get_bd_pins global_axi_control/reset] [get_bd_ports led_reset] [get_bd_pins adc_224_0/led_reset] [get_bd_pins adc_224_1/led_reset] [get_bd_pins adc_226_0/led_reset]
-  connect_bd_net -net lockin_instance_0_valid_counter_port [get_bd_pins adc_224_0/valid_counter_port] [get_bd_pins counters/counter_00]
   connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins proc_sys_reset_0/peripheral_aresetn] [get_bd_pins axi_smc/aresetn]
   connect_bd_net -net rfdc_clk_adc0 [get_bd_pins rfdc/clk_adc0] [get_bd_pins clk_wiz/clk_in1]
   connect_bd_net -net rfdc_m02_axis_tdata [get_bd_pins rfdc/m02_axis_tdata] [get_bd_pins adc_224_1/adc_data]
@@ -4320,133 +989,73 @@ Port;FD4A0000;FD4AFFFF;0|FPD;DPDMA;FD4C0000;FD4CFFFF;0|FPD;DDR_XMPU5_CFG;FD05000
   connect_bd_net -net rfdc_m20_axis_tdata [get_bd_pins rfdc/m20_axis_tdata] [get_bd_pins adc_226_0/adc_data]
   connect_bd_net -net rfdc_m20_axis_tvalid [get_bd_pins rfdc/m20_axis_tvalid] [get_bd_pins adc_226_0/adc_data_valid]
   connect_bd_net -net rst_clk_wiz_0_200M_interconnect_aresetn [get_bd_pins proc_sys_reset_0/interconnect_aresetn] [get_bd_pins rfdc/m0_axis_aresetn] [get_bd_pins rfdc/m2_axis_aresetn]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins rst_ps8_0_99M/peripheral_aresetn] [get_bd_pins rfdc/s_axi_aresetn] [get_bd_pins global_axi_control/s00_axi_aresetn] [get_bd_pins sync_start/s00_axi_aresetn] [get_bd_pins zynq_ultra_ps_axi_periph/S00_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M00_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M01_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M02_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M03_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M04_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M05_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M06_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M07_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M08_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M09_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M10_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M11_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M12_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M13_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M14_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M15_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M16_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M17_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M18_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M19_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M20_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M21_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M22_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M23_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M24_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M25_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M26_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M27_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M28_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M29_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M30_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M31_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M32_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M33_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M34_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M35_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M36_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M37_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M38_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M39_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M40_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M41_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M42_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M43_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M44_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M45_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M46_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M47_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M48_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M49_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M50_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M51_ARESETN] [get_bd_pins adc_224_0/axi_resetn] [get_bd_pins adc_224_1/axi_resetn] [get_bd_pins adc_226_0/axi_resetn] [get_bd_pins zynq_ultra_ps_axi_periph/M52_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M53_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M54_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M55_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M56_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M57_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M58_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M59_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M60_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M61_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M62_ARESETN] [get_bd_pins zynq_ultra_ps_axi_periph/M63_ARESETN] [get_bd_pins counters/s00_axi_aresetn]
   connect_bd_net -net run [get_bd_pins global_axi_control/run] [get_bd_ports led_run] [get_bd_pins adc_224_0/led_run] [get_bd_pins adc_224_1/led_run] [get_bd_pins adc_226_0/led_run]
   connect_bd_net -net s_axis_aresetn_1 [get_bd_pins global_axi_control/resetn] [get_bd_pins adc_224_0/s_axis_aresetn] [get_bd_pins adc_224_1/s_axis_aresetn] [get_bd_pins adc_226_0/s_axis_aresetn]
   connect_bd_net -net usp_rf_data_converter_0_m00_axis_tdata [get_bd_pins rfdc/m00_axis_tdata] [get_bd_pins adc_224_0/adc_data]
   connect_bd_net -net usp_rf_data_converter_0_m00_axis_tvalid [get_bd_pins rfdc/m00_axis_tvalid] [get_bd_pins adc_224_0/adc_data_valid]
-  connect_bd_net -net xlconstant_0_dout [get_bd_pins xlconstant_0/dout] [get_bd_pins counters/counter_11] [get_bd_pins counters/counter_10]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins zynq_ultra_ps/pl_clk0] [get_bd_pins zynq_ultra_ps/maxihpm0_fpd_aclk] [get_bd_pins rst_ps8_0_99M/slowest_sync_clk] [get_bd_pins rfdc/s_axi_aclk] [get_bd_pins global_axi_control/s00_axi_aclk] [get_bd_pins sync_start/s00_axi_aclk] [get_bd_pins zynq_ultra_ps_axi_periph/ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/S00_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M00_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M01_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M02_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M03_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M04_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M05_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M06_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M07_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M08_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M09_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M10_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M11_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M12_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M13_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M14_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M15_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M16_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M17_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M18_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M19_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M20_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M21_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M22_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M23_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M24_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M25_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M26_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M27_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M28_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M29_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M30_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M31_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M32_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M33_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M34_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M35_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M36_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M37_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M38_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M39_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M40_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M41_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M42_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M43_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M44_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M45_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M46_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M47_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M48_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M49_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M50_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M51_ACLK] [get_bd_pins adc_224_0/s_axi_lite_aclk] [get_bd_pins adc_224_1/s_axi_lite_aclk] [get_bd_pins adc_226_0/s_axi_lite_aclk] [get_bd_pins zynq_ultra_ps_axi_periph/M52_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M53_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M54_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M55_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M56_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M57_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M58_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M59_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M60_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M61_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M62_ACLK] [get_bd_pins zynq_ultra_ps_axi_periph/M63_ACLK] [get_bd_pins counters/s00_axi_aclk]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0 [get_bd_pins zynq_ultra_ps/pl_resetn0] [get_bd_pins rst_ps8_0_99M/ext_reset_in] [get_bd_pins proc_sys_reset_0/ext_reset_in]
 
+  # counter_00 ... counter_11 count the valid words of each group, in group order
+  set counter 0
+  foreach adc $adcs {
+    for {set g 0} {$g < $groups_per_adc} {incr g} {
+      set port valid_counter_port[index_suffix $g]
+      connect_bd_net -net ${adc}_$port [get_bd_pins $adc/$port] [get_bd_pins counters/[format counter_%02d $counter]]
+      incr counter
+    }
+  }
+
+  # AXI-lite clock and reset, shared by the PS master side, every interconnect
+  # master port and every AXI-lite slave
+  set periph_aclks {zynq_ultra_ps_axi_periph/ACLK zynq_ultra_ps_axi_periph/S00_ACLK}
+  set periph_aresetns {zynq_ultra_ps_axi_periph/S00_ARESETN zynq_ultra_ps_axi_periph/ARESETN}
+  for {set i 0} {$i < 64} {incr i} {
+    lappend periph_aclks zynq_ultra_ps_axi_periph/[format M%02d_ACLK $i]
+    lappend periph_aresetns zynq_ultra_ps_axi_periph/[format M%02d_ARESETN $i]
+  }
+  set adc_aclks {}
+  set adc_aresetns {}
+  foreach adc $adcs {
+    lappend adc_aclks $adc/s_axi_lite_aclk
+    lappend adc_aresetns $adc/axi_resetn
+  }
+  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins rst_ps8_0_99M/peripheral_aresetn] [get_bd_pins rfdc/s_axi_aresetn] [get_bd_pins global_axi_control/s00_axi_aresetn] [get_bd_pins sync_start/s00_axi_aresetn] [get_bd_pins $periph_aresetns] [get_bd_pins $adc_aresetns] [get_bd_pins counters/s00_axi_aresetn]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins zynq_ultra_ps/pl_clk0] [get_bd_pins zynq_ultra_ps/maxihpm0_fpd_aclk] [get_bd_pins rst_ps8_0_99M/slowest_sync_clk] [get_bd_pins rfdc/s_axi_aclk] [get_bd_pins global_axi_control/s00_axi_aclk] [get_bd_pins sync_start/s00_axi_aclk] [get_bd_pins $periph_aclks] [get_bd_pins $adc_aclks] [get_bd_pins counters/s00_axi_aclk]
+
   # Create address segments
-  assign_bd_address -offset 0xA0000000 -range 0x00010000 -with_name SEG_axi_control_0_S00_AXI_reg -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_0/axi_control_0/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0050000 -range 0x00010000 -with_name SEG_axi_control_0_S00_AXI_reg_1 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_1/axi_control_0/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA00A0000 -range 0x00010000 -with_name SEG_axi_control_0_S00_AXI_reg_2 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_2/axi_control_0/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA00F0000 -range 0x00010000 -with_name SEG_axi_control_0_S00_AXI_reg_3 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_3/axi_control_0/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0140000 -range 0x00010000 -with_name SEG_axi_control_0_S00_AXI_reg_4 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_0/axi_control_0/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0190000 -range 0x00010000 -with_name SEG_axi_control_0_S00_AXI_reg_5 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_1/axi_control_0/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA01E0000 -range 0x00010000 -with_name SEG_axi_control_0_S00_AXI_reg_6 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_2/axi_control_0/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0230000 -range 0x00010000 -with_name SEG_axi_control_0_S00_AXI_reg_7 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_3/axi_control_0/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0280000 -range 0x00010000 -with_name SEG_axi_control_0_S00_AXI_reg_8 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_226_0/group_0/axi_control_0/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA02D0000 -range 0x00010000 -with_name SEG_axi_control_0_S00_AXI_reg_9 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_226_0/group_1/axi_control_0/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0010000 -range 0x00010000 -with_name SEG_axi_control_1_S00_AXI_reg -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_0/axi_control_1/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0060000 -range 0x00010000 -with_name SEG_axi_control_1_S00_AXI_reg_1 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_1/axi_control_1/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA00B0000 -range 0x00010000 -with_name SEG_axi_control_1_S00_AXI_reg_2 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_2/axi_control_1/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0100000 -range 0x00010000 -with_name SEG_axi_control_1_S00_AXI_reg_3 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_3/axi_control_1/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0150000 -range 0x00010000 -with_name SEG_axi_control_1_S00_AXI_reg_4 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_0/axi_control_1/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA01A0000 -range 0x00010000 -with_name SEG_axi_control_1_S00_AXI_reg_5 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_1/axi_control_1/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA01F0000 -range 0x00010000 -with_name SEG_axi_control_1_S00_AXI_reg_6 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_2/axi_control_1/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0240000 -range 0x00010000 -with_name SEG_axi_control_1_S00_AXI_reg_7 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_3/axi_control_1/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0290000 -range 0x00010000 -with_name SEG_axi_control_1_S00_AXI_reg_8 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_226_0/group_0/axi_control_1/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA02E0000 -range 0x00010000 -with_name SEG_axi_control_1_S00_AXI_reg_9 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_226_0/group_1/axi_control_1/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0020000 -range 0x00010000 -with_name SEG_axi_control_2_S00_AXI_reg -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_0/axi_control_2/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0070000 -range 0x00010000 -with_name SEG_axi_control_2_S00_AXI_reg_1 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_1/axi_control_2/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA00C0000 -range 0x00010000 -with_name SEG_axi_control_2_S00_AXI_reg_2 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_2/axi_control_2/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0110000 -range 0x00010000 -with_name SEG_axi_control_2_S00_AXI_reg_3 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_3/axi_control_2/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0160000 -range 0x00010000 -with_name SEG_axi_control_2_S00_AXI_reg_4 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_0/axi_control_2/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA01B0000 -range 0x00010000 -with_name SEG_axi_control_2_S00_AXI_reg_5 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_1/axi_control_2/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0200000 -range 0x00010000 -with_name SEG_axi_control_2_S00_AXI_reg_6 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_2/axi_control_2/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0250000 -range 0x00010000 -with_name SEG_axi_control_2_S00_AXI_reg_7 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_3/axi_control_2/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA02A0000 -range 0x00010000 -with_name SEG_axi_control_2_S00_AXI_reg_8 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_226_0/group_0/axi_control_2/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA02F0000 -range 0x00010000 -with_name SEG_axi_control_2_S00_AXI_reg_9 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_226_0/group_1/axi_control_2/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0030000 -range 0x00010000 -with_name SEG_axi_control_3_S00_AXI_reg -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_0/axi_control_3/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0080000 -range 0x00010000 -with_name SEG_axi_control_3_S00_AXI_reg_1 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_1/axi_control_3/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA00D0000 -range 0x00010000 -with_name SEG_axi_control_3_S00_AXI_reg_2 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_2/axi_control_3/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0120000 -range 0x00010000 -with_name SEG_axi_control_3_S00_AXI_reg_3 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_3/axi_control_3/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0170000 -range 0x00010000 -with_name SEG_axi_control_3_S00_AXI_reg_4 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_0/axi_control_3/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA01C0000 -range 0x00010000 -with_name SEG_axi_control_3_S00_AXI_reg_5 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_1/axi_control_3/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0210000 -range 0x00010000 -with_name SEG_axi_control_3_S00_AXI_reg_6 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_2/axi_control_3/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0260000 -range 0x00010000 -with_name SEG_axi_control_3_S00_AXI_reg_7 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_3/axi_control_3/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA02B0000 -range 0x00010000 -with_name SEG_axi_control_3_S00_AXI_reg_8 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_226_0/group_0/axi_control_3/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0300000 -range 0x00010000 -with_name SEG_axi_control_3_S00_AXI_reg_9 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_226_0/group_1/axi_control_3/S00_AXI/S00_AXI_reg] -force
+  # Group i (0 ... 11, in group order) owns 0xA0000000 + i * 0x50000:
+  # axi_control_0 ... axi_control_3 at +0x00000 ... +0x30000 and dma at +0x40000.
+  # Groups 0 ... 9 keep the addresses of the 40 lock-in design.
+  set ps_data [get_bd_addr_spaces zynq_ultra_ps/Data]
+  set group_index 0
+  foreach adc $adcs {
+    for {set g 0} {$g < $groups_per_adc} {incr g} {
+      set group $adc/group_$g
+      set base [expr {0xA0000000 + $group_index * 0x50000}]
+      set seg_suffix [expr {$group_index == 0 ? "" : "_$group_index"}]
+
+      for {set k 0} {$k < $lockins_per_group} {incr k} {
+        assign_bd_address -offset [format 0x%08X [expr {$base + $k * 0x10000}]] -range 0x00010000 -with_name SEG_axi_control_${k}_S00_AXI_reg$seg_suffix -target_address_space $ps_data [get_bd_addr_segs $group/axi_control_$k/S00_AXI/S00_AXI_reg] -force
+      }
+      assign_bd_address -offset [format 0x%08X [expr {$base + 0x40000}]] -range 0x00010000 -with_name SEG_dma_Reg$seg_suffix -target_address_space $ps_data [get_bd_addr_segs $group/dma/S_AXI_LITE/Reg] -force
+
+      # DMA view of the PS DDR, through both HPC ports
+      set dma_data [get_bd_addr_spaces $group/dma/Data_S2MM]
+      assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space $dma_data [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_LOW] -force
+      assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space $dma_data [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_LOW] -force
+      exclude_bd_addr_seg -target_address_space $dma_data [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_HIGH]
+      exclude_bd_addr_seg -offset 0xFF000000 -range 0x00800000 -target_address_space $dma_data [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_LPS_OCM]
+      exclude_bd_addr_seg -target_address_space $dma_data [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_HIGH]
+      exclude_bd_addr_seg -offset 0xFF800000 -range 0x00800000 -target_address_space $dma_data [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_LPS_OCM]
+
+      incr group_index
+    }
+  }
+
   assign_bd_address -offset 0xA03C0000 -range 0x00010000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs counters/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0xA0040000 -range 0x00010000 -with_name SEG_dma_Reg -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_0/dma/S_AXI_LITE/Reg] -force
-  assign_bd_address -offset 0xA0090000 -range 0x00010000 -with_name SEG_dma_Reg_1 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_1/dma/S_AXI_LITE/Reg] -force
-  assign_bd_address -offset 0xA00E0000 -range 0x00010000 -with_name SEG_dma_Reg_2 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_2/dma/S_AXI_LITE/Reg] -force
-  assign_bd_address -offset 0xA0130000 -range 0x00010000 -with_name SEG_dma_Reg_3 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_0/group_3/dma/S_AXI_LITE/Reg] -force
-  assign_bd_address -offset 0xA0180000 -range 0x00010000 -with_name SEG_dma_Reg_4 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_0/dma/S_AXI_LITE/Reg] -force
-  assign_bd_address -offset 0xA01D0000 -range 0x00010000 -with_name SEG_dma_Reg_5 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_1/dma/S_AXI_LITE/Reg] -force
-  assign_bd_address -offset 0xA0220000 -range 0x00010000 -with_name SEG_dma_Reg_6 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_2/dma/S_AXI_LITE/Reg] -force
-  assign_bd_address -offset 0xA0270000 -range 0x00010000 -with_name SEG_dma_Reg_7 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_224_1/group_3/dma/S_AXI_LITE/Reg] -force
-  assign_bd_address -offset 0xA02C0000 -range 0x00010000 -with_name SEG_dma_Reg_8 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_226_0/group_0/dma/S_AXI_LITE/Reg] -force
-  assign_bd_address -offset 0xA0310000 -range 0x00010000 -with_name SEG_dma_Reg_9 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs adc_226_0/group_1/dma/S_AXI_LITE/Reg] -force
   assign_bd_address -offset 0xA03D0000 -range 0x00010000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs global_axi_control/S00_AXI/S00_AXI_reg] -force
   assign_bd_address -offset 0xA0400000 -range 0x00040000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs rfdc/s_axi/Reg] -force
   assign_bd_address -offset 0xA03E0000 -range 0x00010000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps/Data] [get_bd_addr_segs sync_start/S00_AXI/S00_AXI_reg] -force
-  assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_LOW] -force
-  assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_LOW] -force
-  assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_LOW] -force
-  assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_LOW] -force
-  assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_0/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_LOW] -force
-  assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_0/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_LOW] -force
-  assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_0/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_LOW] -force
-  assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_0/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_LOW] -force
-  assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_1/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_LOW] -force
-  assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_1/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_LOW] -force
-  assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_1/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_LOW] -force
-  assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_1/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_LOW] -force
-  assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_1/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_LOW] -force
-  assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_1/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_LOW] -force
-  assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_1/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_LOW] -force
-  assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_224_1/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_LOW] -force
-  assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_226_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_LOW] -force
-  assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_226_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_LOW] -force
-  assign_bd_address -offset 0x00000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_226_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_LOW] -force
-  assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces adc_226_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_LOW] -force
-
-  # Exclude Address Segments
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF800000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF800000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_0/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_0/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_0/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF800000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_0/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_0/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_0/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_0/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF800000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_0/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_1/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_1/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_1/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF800000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_1/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_1/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_1/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_1/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF800000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_1/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_1/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_1/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_1/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF800000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_1/group_2/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_1/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_1/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_224_1/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF800000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_224_1/group_3/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_226_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_226_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_226_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF800000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_226_0/group_0/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_226_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_226_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP0/HPC0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces adc_226_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_DDR_HIGH]
-  exclude_bd_addr_seg -offset 0xFF800000 -range 0x00800000 -target_address_space [get_bd_addr_spaces adc_226_0/group_1/dma/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps/SAXIGP1/HPC1_LPS_OCM]
-
 
   # Restore current instance
   current_bd_instance $oldCurInst
