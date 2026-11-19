@@ -199,6 +199,14 @@ class RFSoCServer:
             self.controller.config()
             t0 = self.controller.start(self.sync, True)
 
+            # The FIRs are frozen while run is low (no DDS valid) and the soft
+            # reset does not clear them, so the first ~0.5 s after start are the
+            # previous acquisition (old LO) leaving the filters. Drop the first
+            # transfer (256 samples, ~1 s). t0 stays right: rows are timed from
+            # the hardware counter, which counts the dropped samples too.
+            self._start_dma_transfers(dmas, bufs, 0)
+            self._wait_dma(dmas)
+
             buffer_idx = 0
             file_index = 0
 
